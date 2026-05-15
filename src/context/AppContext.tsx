@@ -512,6 +512,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
   // Debounce refs
   const debounceRef = useRef<Record<string, ReturnType<typeof setTimeout>>>({});
   const isFirstLoadRef = useRef(true);
+  const isInitializingRef = useRef(false);
 
   // ── Load data from Supabase ────────────────────────────────
 
@@ -537,45 +538,74 @@ export function AppProvider({ children }: { children: ReactNode }) {
         },
       });
     } catch (e) {
-      console.error('Erro ao carregar dados:', e);
+      console.error('[AppContext] Erro ao carregar dados:', e);
     }
   }, []);
 
-  useEffect(() => {
-    supabase.auth.getSession().then(async ({ data: { session } }) => {
-      if (session?.user) {
-        await initUserData(session.user.id);
-      }
-      setIsLoading(false);
-      isFirstLoadRef.current = false;
-    });
+  const initUserData = useCallback(async (userId: string) => {
+    if (isInitializingRef.current) return;
+    isInitializingRef.current = true;
+    try {
+      const { data: member } = await supabase
+        .from('workspace_members')
+        .select('workspace_id')
+        .eq('user_id', userId)
+        .single();
 
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (_event, session) => {
+      if (member?.workspace_id) {
+        await loadFromDb(member.workspace_id);
+      } else {
+        const wsId = await createDefaultWorkspace(userId);
+        await loadFromDb(wsId);
+      }
+    } finally {
+      isFirstLoadRef.current = false;
+      isInitializingRef.current = false;
+    }
+  }, [loadFromDb]);
+
+  useEffect(() => {
+    supabase.auth.getSession()
+      .then(async ({ data: { session } }) => {
+        try {
+          if (session?.user) await initUserData(session.user.id);
+        } catch (e) {
+          console.error('[AppContext] Erro ao inicializar:', e);
+        } finally {
+          setIsLoading(false);
+          isFirstLoadRef.current = false;
+        }
+      })
+      .catch((e) => {
+        console.error('[AppContext] getSession falhou:', e);
+        setIsLoading(false);
+        isFirstLoadRef.current = false;
+      });
+
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
+      // INITIAL_SESSION is already handled by getSession() above — skip to avoid duplicate init
+      if (event === 'INITIAL_SESSION') return;
+
       if (session?.user) {
         setIsLoading(true);
-        await initUserData(session.user.id);
-        setIsLoading(false);
+        isFirstLoadRef.current = true;
+        try {
+          await initUserData(session.user.id);
+        } catch (e) {
+          console.error('[AppContext] Erro ao inicializar:', e);
+        } finally {
+          setIsLoading(false);
+        }
+      } else {
+        // User signed out — reset to initial state
+        workspaceIdRef.current = null;
+        isFirstLoadRef.current = true;
+        dispatch({ type: 'LOAD_ALL', payload: buildInitialState() });
       }
     });
 
     return () => subscription.unsubscribe();
-  }, []);
-
-  const initUserData = async (userId: string) => {
-    const { data: member } = await supabase
-      .from('workspace_members')
-      .select('workspace_id')
-      .eq('user_id', userId)
-      .single();
-
-    if (member?.workspace_id) {
-      await loadFromDb(member.workspace_id);
-    } else {
-      const wsId = await createDefaultWorkspace(userId);
-      await loadFromDb(wsId);
-    }
-    isFirstLoadRef.current = false;
-  };
+  }, [initUserData]);
 
   // ── Auto-save to Supabase (debounced) ─────────────────────
 

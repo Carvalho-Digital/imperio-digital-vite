@@ -23,50 +23,65 @@ export interface LoadResult {
   refs: DbRefs;
 }
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+async function safeQuery(fn: () => PromiseLike<any>): Promise<any> {
+  try {
+    return (await fn()).data ?? null;
+  } catch (e) {
+    console.error('[DB] query falhou:', e);
+    return null;
+  }
+}
+
 export async function loadAllData(workspaceId: string): Promise<LoadResult> {
-  const [productsRes, wsRes, plansRes, sellersRes, funnelsRes] = await Promise.all([
-    supabase
-      .from('products')
-      .select('id,code,name,tag,meta_tcv,meta_mrr,ticket_tcv,ticket_mrr,months_mrr,is_renov,is_combo,sort_order')
-      .eq('workspace_id', workspaceId)
-      .order('sort_order'),
-    supabase
-      .from('workspaces')
-      .select('annual_goal,avg_ticket,meetings_per_contract,leads_per_meeting')
-      .eq('id', workspaceId)
-      .single(),
-    supabase
-      .from('monthly_plans')
-      .select(`id,year,month,revenue_goal,renov_count,mrr_active,status,
-        contracts(id,product_id,contract_type,value,months,combo_components),
-        monthly_metas(product_id,contract_type,target),
-        miscellaneous_revenue(id,name,quantity,revenue)`)
-      .eq('workspace_id', workspaceId)
-      .order('year').order('month'),
-    supabase
-      .from('sellers')
-      .select(`id,name,
-        seller_metrics(metric_key,monthly_target),
-        daily_entries(entry_date,metric_key,value)`)
-      .eq('workspace_id', workspaceId)
-      .eq('is_active', true)
-      .order('sort_order'),
-    supabase
-      .from('funnels')
-      .select(`id,name,color,sort_order,
-        funnel_stages(id,label,sort_order),
-        funnel_metrics(stage_id,year,month,value,revenue)`)
-      .eq('workspace_id', workspaceId)
-      .order('sort_order'),
+  const [rawProducts, rawWs, rawPlans, rawSellers, rawFunnels] = await Promise.all([
+    safeQuery(() =>
+      supabase
+        .from('products')
+        .select('id,code,name,tag,meta_tcv,meta_mrr,ticket_tcv,ticket_mrr,months_mrr,is_renov,is_combo,sort_order')
+        .eq('workspace_id', workspaceId)
+        .order('sort_order')),
+    safeQuery(() =>
+      supabase
+        .from('workspaces')
+        .select('annual_goal,avg_ticket,meetings_per_contract,leads_per_meeting')
+        .eq('id', workspaceId)
+        .single()),
+    safeQuery(() =>
+      supabase
+        .from('monthly_plans')
+        .select(`id,year,month,revenue_goal,renov_count,mrr_active,status,
+          contracts(id,product_id,contract_type,value,months,combo_components),
+          monthly_metas(product_id,contract_type,target),
+          miscellaneous_revenue(id,name,quantity,revenue)`)
+        .eq('workspace_id', workspaceId)
+        .order('year').order('month')),
+    safeQuery(() =>
+      supabase
+        .from('sellers')
+        .select(`id,name,
+          seller_metrics(metric_key,monthly_target),
+          daily_entries(entry_date,metric_key,value)`)
+        .eq('workspace_id', workspaceId)
+        .eq('is_active', true)
+        .order('sort_order')),
+    safeQuery(() =>
+      supabase
+        .from('funnels')
+        .select(`id,name,color,sort_order,
+          funnel_stages(id,label,sort_order),
+          funnel_metrics(stage_id,year,month,value,revenue)`)
+        .eq('workspace_id', workspaceId)
+        .order('sort_order')),
   ]);
 
   // ── Products ─────────────────────────────────────────────────
   const productCodeToId: Record<string, string> = {};
   const productIdToCode: Record<string, string> = {};
-  const products = productsRes.data || [];
+  const products: any[] = rawProducts || [];
 
   const produtosItems: ProdutoState[] = PRODUTOS_STATE_INICIAL.items.map(def => {
-    const db = products.find(p => p.code === def.id);
+    const db = products.find((p: any) => p.code === def.id);
     if (db) {
       productCodeToId[db.code] = db.id;
       productIdToCode[db.id] = db.code;
@@ -88,7 +103,7 @@ export async function loadAllData(workspaceId: string): Promise<LoadResult> {
   });
 
   // ── Premissas ─────────────────────────────────────────────────
-  const ws = wsRes.data;
+  const ws = rawWs;
   const premissas: Premissas = ws ? {
     meta: Number(ws.annual_goal),
     ticket: Number(ws.avg_ticket),
@@ -98,10 +113,10 @@ export async function loadAllData(workspaceId: string): Promise<LoadResult> {
 
   // ── Monthly plans ─────────────────────────────────────────────
   const monthlyPlanIdByMonth: Record<number, string> = {};
-  const plans = plansRes.data || [];
+  const plans: any[] = rawPlans || [];
 
   const meses: Mes[] = MESES_INICIAIS.map((def, i) => {
-    const plan = plans.find(p => p.month === i + 1);
+    const plan = plans.find((p: any) => p.month === i + 1);
     if (!plan) return { ...def };
 
     monthlyPlanIdByMonth[i + 1] = plan.id;
@@ -144,8 +159,8 @@ export async function loadAllData(workspaceId: string): Promise<LoadResult> {
   });
 
   // ── Sellers ───────────────────────────────────────────────────
-  const sellers = sellersRes.data || [];
-  const vendedores: Vendedor[] = sellers.map(s => {
+  const sellers: any[] = rawSellers || [];
+  const vendedores: Vendedor[] = sellers.map((s: any) => {
     const metas = { ...VENDEDOR_DEFAULT_METAS };
     ((s as any).seller_metrics || []).forEach((m: any) => {
       (metas as any)[m.metric_key] = Number(m.monthly_target);
@@ -179,17 +194,17 @@ export async function loadAllData(workspaceId: string): Promise<LoadResult> {
   };
 
   // ── Funnels ───────────────────────────────────────────────────
-  const funnels = funnelsRes.data || [];
+  const funnels: any[] = rawFunnels || [];
   const funnelStageIds: Record<string, string[]> = {};
 
-  funnels.forEach(f => {
-    const stages = ((f as any).funnel_stages || []).sort((a: any, b: any) => a.sort_order - b.sort_order);
+  funnels.forEach((f: any) => {
+    const stages = (f.funnel_stages || []).sort((a: any, b: any) => a.sort_order - b.sort_order);
     funnelStageIds[f.id] = stages.map((s: any) => s.id);
   });
 
   const cdMeses: Record<string, any> = {};
 
-  funnels.forEach(f => {
+  funnels.forEach((f: any) => {
     const stages = ((f as any).funnel_stages || []).sort((a: any, b: any) => a.sort_order - b.sort_order);
     const stageUUIDs = funnelStageIds[f.id] || [];
 
@@ -222,9 +237,9 @@ export async function loadAllData(workspaceId: string): Promise<LoadResult> {
   if (!cdMeses[currentMesKey]) {
     cdMeses[currentMesKey] = {
       receitaManual: null,
-      funis: funnels.map(f => ({
+      funis: funnels.map((f: any) => ({
         id: f.id, nome: f.name, cor: f.color,
-        etapas: ((f as any).funnel_stages || [])
+        etapas: (f.funnel_stages || [])
           .sort((a: any, b: any) => a.sort_order - b.sort_order)
           .map((s: any) => ({ label: s.label, valor: 0 })),
         receita: 0,
