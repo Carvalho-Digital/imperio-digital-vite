@@ -559,7 +559,8 @@ export function AppProvider({ children }: { children: ReactNode }) {
         await loadFromDb(wsId);
       }
     } finally {
-      isFirstLoadRef.current = false;
+      // Defer para depois dos useEffects de auto-save rodarem neste ciclo de render
+      setTimeout(() => { isFirstLoadRef.current = false; }, 0);
       isInitializingRef.current = false;
     }
   }, [loadFromDb]);
@@ -573,7 +574,6 @@ export function AppProvider({ children }: { children: ReactNode }) {
           console.error('[AppContext] Erro ao inicializar:', e);
         } finally {
           setIsLoading(false);
-          isFirstLoadRef.current = false;
         }
       })
       .catch((e) => {
