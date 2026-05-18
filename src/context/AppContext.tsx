@@ -516,31 +516,35 @@ export function AppProvider({ children }: { children: ReactNode }) {
 
   // ── Load data from Supabase ────────────────────────────────
 
+  const applyDbResult = useCallback((result: import('../lib/db').LoadResult) => {
+    workspaceIdRef.current = result.refs.workspaceId;
+    productCodeToIdRef.current = result.refs.productCodeToId;
+    monthlyPlanIdByMonthRef.current = result.refs.monthlyPlanIdByMonth;
+    funnelStageIdsRef.current = result.refs.funnelStageIds;
+
+    const ui = loadUiState();
+    dispatch({
+      type: 'LOAD_ALL',
+      payload: {
+        meses: result.meses,
+        planoOriginal: deepClone(result.meses),
+        premissas: result.premissas,
+        produtosState: result.produtosState,
+        appState: result.appState,
+        cdState: result.cdState,
+        ...(ui.dashState ? { dashState: ui.dashState } : {}),
+      },
+    });
+  }, []);
+
   const loadFromDb = useCallback(async (workspaceId: string) => {
     try {
       const result = await loadAllData(workspaceId);
-      workspaceIdRef.current = workspaceId;
-      productCodeToIdRef.current = result.refs.productCodeToId;
-      monthlyPlanIdByMonthRef.current = result.refs.monthlyPlanIdByMonth;
-      funnelStageIdsRef.current = result.refs.funnelStageIds;
-
-      const ui = loadUiState();
-      dispatch({
-        type: 'LOAD_ALL',
-        payload: {
-          meses: result.meses,
-          planoOriginal: deepClone(result.meses),
-          premissas: result.premissas,
-          produtosState: result.produtosState,
-          appState: result.appState,
-          cdState: result.cdState,
-          ...(ui.dashState ? { dashState: ui.dashState } : {}),
-        },
-      });
+      applyDbResult(result);
     } catch (e) {
       console.error('[AppContext] Erro ao carregar dados:', e);
     }
-  }, []);
+  }, [applyDbResult]);
 
   const initUserData = useCallback(async (userId: string) => {
     if (isInitializingRef.current) return;
