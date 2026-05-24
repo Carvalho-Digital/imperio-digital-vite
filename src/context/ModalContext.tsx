@@ -2,7 +2,7 @@ import React, { createContext, useContext, useRef, useState } from 'react';
 import type { ReactNode } from 'react';
 import type {
   PromptOpts, ConfirmOpts, AlertOpts, ChoiceOpts,
-  AddContratoOpts, Contrato, ModalContextValue,
+  AddContratoOpts, Contrato, ModalContextValue, FormaPagamento,
 } from '../types';
 
 interface ModalState {
@@ -303,6 +303,11 @@ function ModalAddContrato({
     ('mesesMRR' in produto ? produto.mesesMRR : 6) || 6
   );
   const [comboItens, setComboItens] = useStateLocal<string[]>([]);
+  const [cliente, setCliente] = useStateLocal('');
+  const [formaPagamento, setFormaPagamento] = useStateLocal<FormaPagamento | null>(null);
+  const [parcelas, setParcelas] = useStateLocal<string>('1');
+
+  const exigeParcelas = formaPagamento === 'cartao' || formaPagamento === 'parcelado';
 
   const ticketSug = tipo === 'mrr'
     ? (('ticketMRR' in produto ? produto.ticketMRR : 0) || ('ticketDefaultMRR' in produto ? produto.ticketDefaultMRR : 0) || 0)
@@ -326,11 +331,17 @@ function ModalAddContrato({
     const v = parseFloat(displayValor) || 0;
     if (v <= 0) return;
     if (isCombo && comboItens.length < 2) return;
+    if (!cliente.trim()) return;
+    if (!formaPagamento) return;
+    const nParcelas = exigeParcelas ? Math.max(1, parseInt(parcelas) || 1) : null;
     onResolve({
       valor: v,
       tipo,
       meses: tipo === 'mrr' ? mesesContrato : null,
       comboItens: isCombo ? [...comboItens] : null,
+      cliente: cliente.trim(),
+      formaPagamento,
+      parcelas: nParcelas,
     });
   };
 
@@ -347,6 +358,20 @@ function ModalAddContrato({
           <button className="modal-close" onClick={cancel}>×</button>
         </div>
         <div className="modal-body">
+          <label style={{ display: 'block', marginBottom: 12 }}>
+            <span style={{ fontSize: 11.5, color: 'var(--txt-2)', display: 'block', marginBottom: 4 }}>
+              Cliente / Empresa
+            </span>
+            <input
+              type="text"
+              className="form-input"
+              placeholder="Ex: Dr. João Silva – Advocacia Silva &amp; Associados"
+              value={cliente}
+              onChange={e => setCliente(e.target.value)}
+              onKeyDown={e => { if (e.key === 'Enter') ok(); if (e.key === 'Escape') cancel(); }}
+            />
+          </label>
+
           <div id="m-contrato-tipos" style={{ display: 'flex', gap: 8, marginBottom: 12 }}>
             {(['tcv', 'mrr'] as const).map(t => (
               <button
@@ -398,7 +423,7 @@ function ModalAddContrato({
           </label>
 
           {tipo === 'mrr' && (
-            <label style={{ display: 'block' }}>
+            <label style={{ display: 'block', marginBottom: 12 }}>
               <span style={{ fontSize: 11.5, color: 'var(--txt-2)', display: 'block', marginBottom: 4 }}>
                 Duração do contrato (meses)
               </span>
@@ -409,6 +434,48 @@ function ModalAddContrato({
                 value={mesesContrato}
                 onChange={e => setMesesContrato(parseInt(e.target.value) || 6)}
               />
+            </label>
+          )}
+
+          <div style={{ marginBottom: exigeParcelas ? 12 : 0 }}>
+            <span style={{ fontSize: 11.5, color: 'var(--txt-2)', display: 'block', marginBottom: 6 }}>
+              Forma de pagamento
+            </span>
+            <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
+              {([
+                { id: 'cartao' as const, label: 'Cartão' },
+                { id: 'avista' as const, label: 'À vista' },
+                { id: 'mensalidade' as const, label: 'Mensalidade' },
+                { id: 'parcelado' as const, label: 'Parcelado' },
+              ]).map(fp => (
+                <button
+                  key={fp.id}
+                  type="button"
+                  className={`contrato-tipo-chip${formaPagamento === fp.id ? ' active' : ''}`}
+                  onClick={() => setFormaPagamento(fp.id)}
+                >
+                  {fp.label}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          {exigeParcelas && (
+            <label style={{ display: 'block' }}>
+              <span style={{ fontSize: 11.5, color: 'var(--txt-2)', display: 'block', marginBottom: 4 }}>
+                Quantidade de parcelas
+              </span>
+              <input
+                type="number"
+                min={1}
+                className="form-input"
+                value={parcelas}
+                onChange={e => setParcelas(e.target.value)}
+                onKeyDown={e => { if (e.key === 'Enter') ok(); if (e.key === 'Escape') cancel(); }}
+              />
+              <div style={{ fontSize: 11, color: 'var(--txt-3)', marginTop: 4 }}>
+                Livre. Ex: 1, 2, 3, 6, 12. Use Parcelado para divisões longas (ex: 50k em 3x de 16k a cada 4 meses).
+              </div>
             </label>
           )}
         </div>

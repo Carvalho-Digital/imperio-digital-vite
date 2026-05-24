@@ -4,12 +4,16 @@
 
 export type ContratoTipo = 'tcv' | 'mrr';
 export type MesStatus = 'planejado' | 'andamento' | 'realizado';
+export type FormaPagamento = 'cartao' | 'avista' | 'mensalidade' | 'parcelado';
 
 export interface Contrato {
   valor: number;
   tipo: ContratoTipo;
   meses: number | null;
   comboItens: string[] | null;
+  cliente?: string | null;
+  formaPagamento?: FormaPagamento | null;
+  parcelas?: number | null;
 }
 
 export interface OutroServico {

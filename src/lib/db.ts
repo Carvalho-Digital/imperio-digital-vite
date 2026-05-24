@@ -51,7 +51,7 @@ export async function loadAllData(workspaceId: string): Promise<LoadResult> {
       supabase
         .from('monthly_plans')
         .select(`id,year,month,revenue_goal,renov_count,mrr_active,status,
-          contracts(id,product_id,contract_type,value,months,combo_components),
+          contracts(id,product_id,contract_type,value,months,combo_components,client_name,payment_method,installments),
           monthly_metas(product_id,contract_type,target),
           miscellaneous_revenue(id,name,quantity,revenue)`)
         .eq('workspace_id', workspaceId)
@@ -127,7 +127,15 @@ export async function loadAllData(workspaceId: string): Promise<LoadResult> {
     ((plan as any).contracts || []).forEach((c: any) => {
       const code = productIdToCode[c.product_id];
       if (code && novos[code] !== undefined) {
-        novos[code].push({ valor: Number(c.value), tipo: c.contract_type, meses: c.months, comboItens: c.combo_components });
+        novos[code].push({
+          valor: Number(c.value),
+          tipo: c.contract_type,
+          meses: c.months,
+          comboItens: c.combo_components,
+          cliente: c.client_name ?? null,
+          formaPagamento: c.payment_method ?? null,
+          parcelas: c.installments ?? null,
+        });
       }
     });
 
@@ -305,6 +313,9 @@ export async function saveMonthlyPlan(
     contracts.forEach(c => newContracts.push({
       monthly_plan_id: planId, product_id: productId,
       contract_type: c.tipo, value: c.valor, months: c.meses, combo_components: c.comboItens,
+      client_name: c.cliente ?? null,
+      payment_method: c.formaPagamento ?? null,
+      installments: c.parcelas ?? null,
     }));
   });
   if (newContracts.length > 0) await supabase.from('contracts').insert(newContracts);
