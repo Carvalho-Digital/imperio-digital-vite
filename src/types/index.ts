@@ -6,7 +6,20 @@ export type ContratoTipo = 'tcv' | 'mrr';
 export type MesStatus = 'planejado' | 'andamento' | 'realizado';
 export type FormaPagamento = 'cartao' | 'avista' | 'mensalidade' | 'parcelado';
 
+export interface ContratoFicha {
+  vigenciaInicio?: string | null;        // ISO date YYYY-MM-DD
+  vigenciaMeses?: number | null;
+  entregaveis?: string | null;
+  notasJuridico?: string | null;
+  notasOperacional?: string | null;
+  notasLivres?: string | null;
+  customFields?: Record<string, unknown>;
+  atualizadaEm?: string | null;
+  atualizadaPor?: string | null;
+}
+
 export interface Contrato {
+  id?: string;                            // populado quando vem do DB
   valor: number;
   tipo: ContratoTipo;
   meses: number | null;
@@ -14,6 +27,23 @@ export interface Contrato {
   cliente?: string | null;
   formaPagamento?: FormaPagamento | null;
   parcelas?: number | null;
+  ficha?: ContratoFicha;
+}
+
+/* Form Builder lite — definições dos campos custom da Ficha */
+export type FieldType = 'text' | 'textarea' | 'number' | 'date' | 'boolean' | 'select';
+
+export interface FieldDefinition {
+  id: string;
+  formKey: string;                        // 'ficha_contrato' por enquanto
+  fieldKey: string;
+  label: string;
+  description?: string | null;
+  fieldType: FieldType;
+  options?: { values: string[] } | null;
+  required: boolean;
+  sortOrder: number;
+  isBuiltin: boolean;
 }
 
 export interface OutroServico {
@@ -361,12 +391,20 @@ export interface AddContratoOpts {
   sugValor?: number;
 }
 
+export interface DetalharContratoOpts {
+  contrato: Contrato;
+  produto: ProdutoState | ProdutoCatalogo;
+  mes?: string;
+  fichaAtual?: ContratoFicha;
+}
+
 export interface ModalContextValue {
   showPrompt: (opts: PromptOpts) => Promise<string | null>;
   showConfirm: (opts: ConfirmOpts) => Promise<boolean>;
   showAlert: (opts: AlertOpts) => Promise<void>;
   showChoice: (opts: ChoiceOpts) => Promise<string | null>;
   showAddContrato: (opts: AddContratoOpts) => Promise<Contrato | null>;
+  showDetalharContrato: (opts: DetalharContratoOpts) => Promise<ContratoFicha | null>;
 }
 
 /* ============================================================

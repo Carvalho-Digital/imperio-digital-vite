@@ -51,7 +51,7 @@ export async function loadAllData(workspaceId: string): Promise<LoadResult> {
       supabase
         .from('monthly_plans')
         .select(`id,year,month,revenue_goal,renov_count,mrr_active,status,
-          contracts(id,product_id,contract_type,value,months,combo_components,client_name,payment_method,installments),
+          contracts(id,product_id,contract_type,value,months,combo_components,client_name,payment_method,installments,vigencia_inicio,vigencia_meses,entregaveis,notas_juridico,notas_operacional,notas_livres,custom_fields,ficha_atualizada_em,ficha_atualizada_por),
           monthly_metas(product_id,contract_type,target),
           miscellaneous_revenue(id,name,quantity,revenue)`)
         .eq('workspace_id', workspaceId)
@@ -128,6 +128,7 @@ export async function loadAllData(workspaceId: string): Promise<LoadResult> {
       const code = productIdToCode[c.product_id];
       if (code && novos[code] !== undefined) {
         novos[code].push({
+          id: c.id,
           valor: Number(c.value),
           tipo: c.contract_type,
           meses: c.months,
@@ -135,6 +136,17 @@ export async function loadAllData(workspaceId: string): Promise<LoadResult> {
           cliente: c.client_name ?? null,
           formaPagamento: c.payment_method ?? null,
           parcelas: c.installments ?? null,
+          ficha: {
+            vigenciaInicio: c.vigencia_inicio ?? null,
+            vigenciaMeses: c.vigencia_meses ?? null,
+            entregaveis: c.entregaveis ?? null,
+            notasJuridico: c.notas_juridico ?? null,
+            notasOperacional: c.notas_operacional ?? null,
+            notasLivres: c.notas_livres ?? null,
+            customFields: c.custom_fields ?? {},
+            atualizadaEm: c.ficha_atualizada_em ?? null,
+            atualizadaPor: c.ficha_atualizada_por ?? null,
+          },
         });
       }
     });
@@ -316,6 +328,15 @@ export async function saveMonthlyPlan(
       client_name: c.cliente ?? null,
       payment_method: c.formaPagamento ?? null,
       installments: c.parcelas ?? null,
+      vigencia_inicio: c.ficha?.vigenciaInicio ?? null,
+      vigencia_meses: c.ficha?.vigenciaMeses ?? null,
+      entregaveis: c.ficha?.entregaveis ?? null,
+      notas_juridico: c.ficha?.notasJuridico ?? null,
+      notas_operacional: c.ficha?.notasOperacional ?? null,
+      notas_livres: c.ficha?.notasLivres ?? null,
+      custom_fields: c.ficha?.customFields ?? {},
+      ficha_atualizada_em: c.ficha?.atualizadaEm ?? null,
+      ficha_atualizada_por: c.ficha?.atualizadaPor ?? null,
     }));
   });
   if (newContracts.length > 0) await supabase.from('contracts').insert(newContracts);

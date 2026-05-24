@@ -12,7 +12,7 @@ interface Props { idx: number }
 
 export default function ModalDetalheMes({ idx }: Props) {
   const { state, dispatch } = useAppContext();
-  const { showConfirm, showPrompt, showAddContrato } = useModal();
+  const { showConfirm, showPrompt, showAddContrato, showDetalharContrato } = useModal();
   const { meses, produtosState } = state;
   const m = meses[idx];
 
@@ -45,7 +45,9 @@ export default function ModalDetalheMes({ idx }: Props) {
             const handleAddContrato = async () => {
               const novo = await showAddContrato({ produto: p, mes: m.mes });
               if (!novo) return;
-              dispatch({ type: 'ADD_CONTRATO', idx, pid: p.id, contrato: novo });
+              const ficha = await showDetalharContrato({ contrato: novo, produto: p, mes: m.mes });
+              const contratoFinal = ficha ? { ...novo, ficha } : novo;
+              dispatch({ type: 'ADD_CONTRATO', idx, pid: p.id, contrato: contratoFinal });
             };
 
             const handleEditMeta = async (tipo: 'tcv' | 'mrr') => {

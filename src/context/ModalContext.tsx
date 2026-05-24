@@ -2,7 +2,8 @@ import React, { createContext, useContext, useRef, useState } from 'react';
 import type { ReactNode } from 'react';
 import type {
   PromptOpts, ConfirmOpts, AlertOpts, ChoiceOpts,
-  AddContratoOpts, Contrato, ModalContextValue, FormaPagamento,
+  AddContratoOpts, DetalharContratoOpts, Contrato, ContratoFicha,
+  ModalContextValue, FormaPagamento,
 } from '../types';
 
 interface ModalState {
@@ -16,6 +17,8 @@ interface ModalState {
   choiceOpts: ChoiceOpts;
   addContratoOpen: boolean;
   addContratoOpts: AddContratoOpts | null;
+  detalharContratoOpen: boolean;
+  detalharContratoOpts: DetalharContratoOpts | null;
 }
 
 const defaultState: ModalState = {
@@ -29,6 +32,8 @@ const defaultState: ModalState = {
   choiceOpts: {},
   addContratoOpen: false,
   addContratoOpts: null,
+  detalharContratoOpen: false,
+  detalharContratoOpts: null,
 };
 
 const ModalCtx = createContext<ModalContextValue | null>(null);
@@ -41,6 +46,7 @@ export function ModalProvider({ children }: { children: ReactNode }) {
   const alertResolveRef       = useRef<(() => void) | null>(null);
   const choiceResolveRef      = useRef<((v: string | null) => void) | null>(null);
   const contratoResolveRef    = useRef<((v: Contrato | null) => void) | null>(null);
+  const detalharResolveRef    = useRef<((v: ContratoFicha | null) => void) | null>(null);
 
   const showPrompt = (opts: PromptOpts): Promise<string | null> =>
     new Promise(resolve => {
@@ -72,6 +78,12 @@ export function ModalProvider({ children }: { children: ReactNode }) {
       setMs(p => ({ ...p, addContratoOpen: true, addContratoOpts: opts }));
     });
 
+  const showDetalharContrato = (opts: DetalharContratoOpts): Promise<ContratoFicha | null> =>
+    new Promise(resolve => {
+      detalharResolveRef.current = resolve;
+      setMs(p => ({ ...p, detalharContratoOpen: true, detalharContratoOpts: opts }));
+    });
+
   const resolvePrompt = (v: string | null) => {
     promptResolveRef.current?.(v);
     setMs(p => ({ ...p, promptOpen: false }));
@@ -97,8 +109,13 @@ export function ModalProvider({ children }: { children: ReactNode }) {
     setMs(p => ({ ...p, addContratoOpen: false }));
   };
 
+  const resolveDetalhar = (v: ContratoFicha | null) => {
+    detalharResolveRef.current?.(v);
+    setMs(p => ({ ...p, detalharContratoOpen: false }));
+  };
+
   return (
-    <ModalCtx.Provider value={{ showPrompt, showConfirm, showAlert, showChoice, showAddContrato }}>
+    <ModalCtx.Provider value={{ showPrompt, showConfirm, showAlert, showChoice, showAddContrato, showDetalharContrato }}>
       {children}
       {ms.promptOpen && (
         <ModalPrompt opts={ms.promptOpts} onResolve={resolvePrompt} />
@@ -114,6 +131,9 @@ export function ModalProvider({ children }: { children: ReactNode }) {
       )}
       {ms.addContratoOpen && ms.addContratoOpts && (
         <ModalAddContrato opts={ms.addContratoOpts} onResolve={resolveContrato} />
+      )}
+      {ms.detalharContratoOpen && ms.detalharContratoOpts && (
+        <ModalDetalharContrato opts={ms.detalharContratoOpts} onResolve={resolveDetalhar} />
       )}
     </ModalCtx.Provider>
   );
@@ -537,6 +557,184 @@ function ModalAddContrato({
         >
           <button className="btn" onClick={cancel}>Cancelar</button>
           <button className="btn btn-primary" onClick={ok}>Adicionar contrato</button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+/* ============================================================
+   ModalDetalharContrato
+   Ficha pós-fechamento para passar bastão pro Jurídico/Operacional.
+   Abre automático após ModalAddContrato; usuário pode preencher ou Pular.
+   ============================================================ */
+function ModalDetalharContrato({
+  opts, onResolve,
+}: { opts: DetalharContratoOpts; onResolve: (v: ContratoFicha | null) => void }) {
+  const { contrato, produto, mes, fichaAtual } = opts;
+  const inicio0 = fichaAtual?.vigenciaInicio ?? new Date().toISOString().slice(0, 10);
+  const meses0 = fichaAtual?.vigenciaMeses ?? (contrato.meses ?? 6);
+
+  const [vigenciaInicio, setVigenciaInicio] = useStateLocal<string>(inicio0);
+  const [vigenciaMeses, setVigenciaMeses]   = useStateLocal<number>(meses0);
+  const [entregaveis, setEntregaveis]       = useStateLocal<string>(fichaAtual?.entregaveis ?? '');
+  const [notasOperacional, setNotasOp]      = useStateLocal<string>(fichaAtual?.notasOperacional ?? '');
+  const [notasJuridico, setNotasJur]        = useStateLocal<string>(fichaAtual?.notasJuridico ?? '');
+  const [notasLivres, setNotasLivres]       = useStateLocal<string>(fichaAtual?.notasLivres ?? '');
+
+  const dataFim = (() => {
+    if (!vigenciaInicio || !vigenciaMeses) return '';
+    const d = new Date(vigenciaInicio + 'T00:00:00');
+    d.setMonth(d.getMonth() + vigenciaMeses);
+    return d.toISOString().slice(0, 10);
+  })();
+
+  const labelStyle: React.CSSProperties = {
+    display: 'block', fontSize: 11.5, fontWeight: 600,
+    color: 'var(--txt-1)', marginBottom: 6, letterSpacing: 0.2,
+    textTransform: 'uppercase',
+  };
+  const hintStyle: React.CSSProperties = {
+    fontSize: 11, color: 'var(--txt-3)', marginTop: 6, lineHeight: 1.4,
+  };
+  const blockGap = 18;
+  const inputStyle: React.CSSProperties = { width: '100%' };
+
+  const salvar = () => {
+    onResolve({
+      vigenciaInicio: vigenciaInicio || null,
+      vigenciaMeses: vigenciaMeses || null,
+      entregaveis: entregaveis.trim() || null,
+      notasOperacional: notasOperacional.trim() || null,
+      notasJuridico: notasJuridico.trim() || null,
+      notasLivres: notasLivres.trim() || null,
+      atualizadaEm: new Date().toISOString(),
+    });
+  };
+  const pular = () => onResolve(null);
+
+  const formatBRL = (n: number) => n.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL', minimumFractionDigits: 0 });
+
+  return (
+    <div className="modal-backdrop show" onClick={pular}>
+      <div
+        className="modal modal-sm"
+        onClick={e => e.stopPropagation()}
+        style={{ maxWidth: 620, padding: 28 }}
+      >
+        <div className="modal-head">
+          <div>
+            <div className="modal-title">Ficha do contrato — passagem de bastão</div>
+            <div className="modal-subtitle" style={{ marginBottom: 0, marginTop: 4, fontSize: 12.5, color: 'var(--txt-2)' }}>
+              {contrato.cliente ?? 'Cliente'} · {('icon' in produto ? produto.icon : '')} {produto.nome} · {formatBRL(contrato.valor)} {contrato.tipo.toUpperCase()}
+              {mes ? ` · ${mes}` : ''}
+            </div>
+          </div>
+          <button className="modal-close" onClick={pular}>×</button>
+        </div>
+
+        <div className="modal-body">
+          <div style={{
+            background: 'var(--bg-2)', border: '1px solid var(--border)',
+            borderRadius: 10, padding: '10px 12px', marginBottom: blockGap,
+            fontSize: 12, color: 'var(--txt-2)', lineHeight: 1.5,
+          }}>
+            Preenche pra ajudar o time operacional e jurídico. Se preferir, pula e completa depois pela aba <strong>Contratos</strong>.
+          </div>
+
+          {/* ── Vigência ─────────────────────────────── */}
+          <div style={{ marginBottom: blockGap }}>
+            <span style={labelStyle}>Vigência</span>
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
+              <label>
+                <span style={{ ...hintStyle, marginTop: 0, marginBottom: 4, display: 'block' }}>Início</span>
+                <input
+                  type="date"
+                  className="form-input"
+                  style={inputStyle}
+                  value={vigenciaInicio}
+                  onChange={e => setVigenciaInicio(e.target.value)}
+                />
+              </label>
+              <label>
+                <span style={{ ...hintStyle, marginTop: 0, marginBottom: 4, display: 'block' }}>Duração (meses)</span>
+                <input
+                  type="number"
+                  min={1}
+                  className="form-input"
+                  style={inputStyle}
+                  value={vigenciaMeses}
+                  onChange={e => setVigenciaMeses(parseInt(e.target.value) || 0)}
+                />
+              </label>
+            </div>
+            {dataFim && (
+              <div style={hintStyle}>Término previsto: <strong>{new Date(dataFim + 'T00:00:00').toLocaleDateString('pt-BR')}</strong></div>
+            )}
+          </div>
+
+          {/* ── Entregáveis ──────────────────────────── */}
+          <label style={{ display: 'block', marginBottom: blockGap }}>
+            <span style={labelStyle}>Entregáveis prometidos ao cliente</span>
+            <textarea
+              className="form-input"
+              rows={3}
+              placeholder="Ex: Posicionamento completo + 2 reuniões extras por mês + adaptação de criativos pro nicho"
+              value={entregaveis}
+              onChange={e => setEntregaveis(e.target.value)}
+              style={{ ...inputStyle, resize: 'vertical', minHeight: 60, fontFamily: 'inherit' }}
+            />
+          </label>
+
+          {/* ── Notas operacional ────────────────────── */}
+          <label style={{ display: 'block', marginBottom: blockGap }}>
+            <span style={labelStyle}>Notas pro time operacional</span>
+            <textarea
+              className="form-input"
+              rows={3}
+              placeholder="Preferências do cliente, sensibilidades, ponto focal. Ex: prefere WhatsApp a email; filho dele é o decisor real."
+              value={notasOperacional}
+              onChange={e => setNotasOp(e.target.value)}
+              style={{ ...inputStyle, resize: 'vertical', minHeight: 60, fontFamily: 'inherit' }}
+            />
+          </label>
+
+          {/* ── Notas jurídico ───────────────────────── */}
+          <label style={{ display: 'block', marginBottom: blockGap }}>
+            <span style={labelStyle}>Notas pro jurídico</span>
+            <textarea
+              className="form-input"
+              rows={3}
+              placeholder="Cláusulas especiais, multas, exclusividade, condições atípicas a colocar no contrato."
+              value={notasJuridico}
+              onChange={e => setNotasJur(e.target.value)}
+              style={{ ...inputStyle, resize: 'vertical', minHeight: 60, fontFamily: 'inherit' }}
+            />
+          </label>
+
+          {/* ── Notas livres ─────────────────────────── */}
+          <label style={{ display: 'block' }}>
+            <span style={labelStyle}>Notas livres</span>
+            <textarea
+              className="form-input"
+              rows={2}
+              placeholder="Qualquer coisa que não couber nos campos acima."
+              value={notasLivres}
+              onChange={e => setNotasLivres(e.target.value)}
+              style={{ ...inputStyle, resize: 'vertical', minHeight: 48, fontFamily: 'inherit' }}
+            />
+          </label>
+        </div>
+
+        <div
+          className="modal-actions"
+          style={{
+            gap: 10, marginTop: 24, paddingTop: 18,
+            borderTop: '1px solid var(--border)',
+          }}
+        >
+          <button className="btn" onClick={pular}>Pular (preencher depois)</button>
+          <button className="btn btn-primary" onClick={salvar}>Salvar ficha</button>
         </div>
       </div>
     </div>

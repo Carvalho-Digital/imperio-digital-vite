@@ -13,7 +13,7 @@ interface Props { idx: number; onClose: () => void }
 
 export default function ModalFinalizarMes({ idx, onClose }: Props) {
   const { state, dispatch } = useAppContext();
-  const { showConfirm, showAddContrato } = useModal();
+  const { showConfirm, showAddContrato, showDetalharContrato } = useModal();
   const { meses, produtosState } = state;
   const m = meses[idx];
 
@@ -69,7 +69,9 @@ export default function ModalFinalizarMes({ idx, onClose }: Props) {
     if (!p) return;
     const novo = await showAddContrato({ produto: p, mes: m.mes });
     if (!novo) return;
-    dispatch({ type: 'ADD_CONTRATO', idx, pid, contrato: novo });
+    const ficha = await showDetalharContrato({ contrato: novo, produto: p, mes: m.mes });
+    const contratoFinal = ficha ? { ...novo, ficha } : novo;
+    dispatch({ type: 'ADD_CONTRATO', idx, pid, contrato: contratoFinal });
   };
 
   const handleRemoveContrato = async (pid: string, ci: number) => {
