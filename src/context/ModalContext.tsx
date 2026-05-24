@@ -347,49 +347,99 @@ function ModalAddContrato({
 
   const cancel = () => onResolve(null);
 
+  const labelStyle: React.CSSProperties = {
+    display: 'block', fontSize: 11.5, fontWeight: 600,
+    color: 'var(--txt-1)', marginBottom: 6, letterSpacing: 0.2,
+    textTransform: 'uppercase',
+  };
+  const hintStyle: React.CSSProperties = {
+    fontSize: 11, color: 'var(--txt-3)', marginTop: 6, lineHeight: 1.4,
+  };
+  const blockGap = 18;
+  const sectionDivider: React.CSSProperties = {
+    height: 1, background: 'var(--border)', margin: `${blockGap}px 0`,
+    opacity: 0.6,
+  };
+
+  const fpOptions = [
+    { id: 'cartao' as const,      label: 'Cartão' },
+    { id: 'avista' as const,      label: 'À vista' },
+    { id: 'mensalidade' as const, label: 'Mensalidade' },
+    { id: 'parcelado' as const,   label: 'Parcelado' },
+  ];
+
+  const chipPgtoBase: React.CSSProperties = {
+    flex: '1 1 0', minWidth: 0,
+    padding: '10px 8px',
+    background: 'var(--bg-2)',
+    border: '1px solid var(--border)',
+    borderRadius: 9,
+    fontSize: 12.5, fontWeight: 700,
+    color: 'var(--txt-2)',
+    cursor: 'pointer', textAlign: 'center',
+    transition: 'all 0.12s', fontFamily: 'inherit',
+    whiteSpace: 'nowrap',
+  };
+  const chipPgtoActive: React.CSSProperties = {
+    ...chipPgtoBase,
+    background: 'var(--silver-grad)',
+    color: '#0a0a0c',
+    borderColor: 'transparent',
+  };
+
   return (
     <div className="modal-backdrop show" onClick={cancel}>
-      <div className="modal modal-sm" onClick={e => e.stopPropagation()}>
+      <div
+        className="modal modal-sm"
+        onClick={e => e.stopPropagation()}
+        style={{ maxWidth: 540, padding: 28 }}
+      >
         <div className="modal-head">
           <div>
-            <div className="modal-title">Novo contrato · {produto.nome}</div>
-            {mes && <div className="modal-subtitle" style={{ marginBottom: 0, marginTop: 4, fontSize: 12.5, color: "var(--txt-2)" }}>{mes} · {'icon' in produto ? produto.icon : ''} {produto.nome}</div>}
+            <div className="modal-title">Novo contrato</div>
+            {mes && (
+              <div className="modal-subtitle" style={{ marginBottom: 0, marginTop: 4, fontSize: 12.5, color: 'var(--txt-2)' }}>
+                {mes} · {'icon' in produto ? produto.icon : ''} {produto.nome}
+              </div>
+            )}
           </div>
           <button className="modal-close" onClick={cancel}>×</button>
         </div>
+
         <div className="modal-body">
-          <label style={{ display: 'block', marginBottom: 12 }}>
-            <span style={{ fontSize: 11.5, color: 'var(--txt-2)', display: 'block', marginBottom: 4 }}>
-              Cliente / Empresa
-            </span>
+          {/* ── 1. Identificação ─────────────────────── */}
+          <label style={{ display: 'block', marginBottom: blockGap }}>
+            <span style={labelStyle}>Cliente / Empresa</span>
             <input
               type="text"
               className="form-input"
-              placeholder="Ex: Dr. João Silva – Advocacia Silva &amp; Associados"
+              placeholder="Nome do cliente ou empresa fechada"
               value={cliente}
               onChange={e => setCliente(e.target.value)}
               onKeyDown={e => { if (e.key === 'Enter') ok(); if (e.key === 'Escape') cancel(); }}
             />
           </label>
 
-          <div id="m-contrato-tipos" style={{ display: 'flex', gap: 8, marginBottom: 12 }}>
-            {(['tcv', 'mrr'] as const).map(t => (
-              <button
-                key={t}
-                type="button"
-                className={`contrato-tipo-chip${tipo === t ? ' active' : ''}`}
-                onClick={() => toggleTipo(t)}
-              >
-                {t.toUpperCase()}
-              </button>
-            ))}
+          {/* ── 2. Tipo de contrato ──────────────────── */}
+          <div style={{ marginBottom: blockGap }}>
+            <span style={labelStyle}>Tipo de contrato</span>
+            <div style={{ display: 'flex', gap: 8 }}>
+              {(['tcv', 'mrr'] as const).map(t => (
+                <button
+                  key={t}
+                  type="button"
+                  className={`contrato-tipo-chip${tipo === t ? ' active' : ''}`}
+                  onClick={() => toggleTipo(t)}
+                >
+                  {t.toUpperCase()}
+                </button>
+              ))}
+            </div>
           </div>
 
           {isCombo && (
-            <div style={{ marginBottom: 12 }}>
-              <div style={{ fontSize: 11.5, color: 'var(--txt-2)', marginBottom: 6 }}>
-                Selecione 2+ produtos do combo:
-              </div>
+            <div style={{ marginBottom: blockGap }}>
+              <span style={labelStyle}>Produtos do combo (mínimo 2)</span>
               <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
                 {COMBO_COMPONENTES.map(c => (
                   <button
@@ -405,8 +455,9 @@ function ModalAddContrato({
             </div>
           )}
 
-          <label style={{ display: 'block', marginBottom: 8 }}>
-            <span style={{ fontSize: 11.5, color: 'var(--txt-2)', display: 'block', marginBottom: 4 }}>
+          {/* ── 3. Valor ─────────────────────────────── */}
+          <label style={{ display: 'block', marginBottom: tipo === 'mrr' ? blockGap : 0 }}>
+            <span style={labelStyle}>
               {tipo === 'mrr' ? 'Valor mensal (R$)' : 'Valor do contrato (R$)'}
             </span>
             <input
@@ -417,16 +468,14 @@ function ModalAddContrato({
               onChange={e => { setAutoFilled(false); setValor(e.target.value); }}
               onKeyDown={e => { if (e.key === 'Enter') ok(); if (e.key === 'Escape') cancel(); }}
             />
-            <div style={{ fontSize: 11, color: 'var(--txt-3)', marginTop: 4 }}>
+            <div style={hintStyle}>
               Ticket sugerido: {fmtBRLCompleto(ticketSug)}{tipo === 'mrr' ? '/mês' : ''}
             </div>
           </label>
 
           {tipo === 'mrr' && (
-            <label style={{ display: 'block', marginBottom: 12 }}>
-              <span style={{ fontSize: 11.5, color: 'var(--txt-2)', display: 'block', marginBottom: 4 }}>
-                Duração do contrato (meses)
-              </span>
+            <label style={{ display: 'block' }}>
+              <span style={labelStyle}>Duração do contrato (meses)</span>
               <input
                 type="number"
                 min={1}
@@ -437,34 +486,31 @@ function ModalAddContrato({
             </label>
           )}
 
-          <div style={{ marginBottom: exigeParcelas ? 12 : 0 }}>
-            <span style={{ fontSize: 11.5, color: 'var(--txt-2)', display: 'block', marginBottom: 6 }}>
-              Forma de pagamento
-            </span>
-            <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
-              {([
-                { id: 'cartao' as const, label: 'Cartão' },
-                { id: 'avista' as const, label: 'À vista' },
-                { id: 'mensalidade' as const, label: 'Mensalidade' },
-                { id: 'parcelado' as const, label: 'Parcelado' },
-              ]).map(fp => (
-                <button
-                  key={fp.id}
-                  type="button"
-                  className={`contrato-tipo-chip${formaPagamento === fp.id ? ' active' : ''}`}
-                  onClick={() => setFormaPagamento(fp.id)}
-                >
-                  {fp.label}
-                </button>
-              ))}
+          <div style={sectionDivider} />
+
+          {/* ── 4. Pagamento ─────────────────────────── */}
+          <div style={{ marginBottom: exigeParcelas ? blockGap : 0 }}>
+            <span style={labelStyle}>Forma de pagamento</span>
+            <div style={{ display: 'flex', gap: 8 }}>
+              {fpOptions.map(fp => {
+                const active = formaPagamento === fp.id;
+                return (
+                  <button
+                    key={fp.id}
+                    type="button"
+                    style={active ? chipPgtoActive : chipPgtoBase}
+                    onClick={() => setFormaPagamento(fp.id)}
+                  >
+                    {fp.label}
+                  </button>
+                );
+              })}
             </div>
           </div>
 
           {exigeParcelas && (
             <label style={{ display: 'block' }}>
-              <span style={{ fontSize: 11.5, color: 'var(--txt-2)', display: 'block', marginBottom: 4 }}>
-                Quantidade de parcelas
-              </span>
+              <span style={labelStyle}>Quantidade de parcelas</span>
               <input
                 type="number"
                 min={1}
@@ -473,13 +519,14 @@ function ModalAddContrato({
                 onChange={e => setParcelas(e.target.value)}
                 onKeyDown={e => { if (e.key === 'Enter') ok(); if (e.key === 'Escape') cancel(); }}
               />
-              <div style={{ fontSize: 11, color: 'var(--txt-3)', marginTop: 4 }}>
-                Livre. Ex: 1, 2, 3, 6, 12. Use Parcelado para divisões longas (ex: 50k em 3x de 16k a cada 4 meses).
+              <div style={hintStyle}>
+                Livre — ex: 1, 2, 3, 6, 12. Use <strong>Parcelado</strong> para divisões longas (ex: 50k em 3x de 16k a cada 4 meses).
               </div>
             </label>
           )}
         </div>
-        <div className="modal-actions">
+
+        <div className="modal-actions" style={{ gap: 8, marginTop: 4 }}>
           <button className="btn" onClick={cancel}>Cancelar</button>
           <button className="btn btn-primary" onClick={ok}>Adicionar contrato</button>
         </div>
