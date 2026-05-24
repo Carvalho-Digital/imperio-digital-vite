@@ -526,7 +526,15 @@ function ModalAddContrato({
           )}
         </div>
 
-        <div className="modal-actions" style={{ gap: 8, marginTop: 4 }}>
+        <div
+          className="modal-actions"
+          style={{
+            gap: 10,
+            marginTop: 24,
+            paddingTop: 18,
+            borderTop: '1px solid var(--border)',
+          }}
+        >
           <button className="btn" onClick={cancel}>Cancelar</button>
           <button className="btn btn-primary" onClick={ok}>Adicionar contrato</button>
         </div>
