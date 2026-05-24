@@ -1,8 +1,26 @@
+import { useState, useCallback } from 'react';
 import { useAppContext } from '../../context/AppContext';
 import { dashSomarMeses, calcDerivados, calcularMRRMensal } from '../../lib/calculations';
 import { fmtBRL, fmtBRLCompleto } from '../../lib/formatters';
 import { META_MRR_DEZEMBRO } from '../../lib/constants';
-import type { DashPeriodo } from '../../types';
+import type { DashPeriodo, TrackingWidget } from '../../types';
+
+/* ── Tracking helpers ─────────────────────────────────────── */
+const LS_TRACK = 'dash_tracking_v1';
+function loadWidgets(): TrackingWidget[] {
+  try { return JSON.parse(localStorage.getItem(LS_TRACK) || '[]'); } catch { return []; }
+}
+function saveWidgets(w: TrackingWidget[]) { localStorage.setItem(LS_TRACK, JSON.stringify(w)); }
+function uidT() { return Math.random().toString(36).slice(2, 10); }
+
+function fmtWidget(val: number, fmt: TrackingWidget['formato']) {
+  if (fmt === 'brl') return 'R$ ' + val.toLocaleString('pt-BR', { minimumFractionDigits: 2 });
+  if (fmt === 'pct') return val.toFixed(1) + '%';
+  return val.toLocaleString('pt-BR');
+}
+
+const TRACK_MESES = ['Jan','Fev','Mar','Abr','Mai','Jun','Jul','Ago','Set','Out','Nov','Dez'];
+const TRACK_MESES_FULL = ['Janeiro','Fevereiro','Março','Abril','Maio','Junho','Julho','Agosto','Setembro','Outubro','Novembro','Dezembro'];
 
 const MESES_LABELS = ['Jan','Fev','Mar','Abr','Mai','Jun','Jul','Ago','Set','Out','Nov','Dez'];
 const MESES_FULL = ['Janeiro','Fevereiro','Março','Abril','Maio','Junho','Julho','Agosto','Setembro','Outubro','Novembro','Dezembro'];
@@ -19,6 +37,46 @@ function dashGetMesesRange(dashState: { periodo: DashPeriodo; trimestre: number 
 export default function DashboardPanel() {
   const { state, dispatch } = useAppContext();
   const { meses, dashState, premissas, planoOriginal } = state;
+
+  /* ── Tracking state ───────────────────────────────────── */
+  const hoje2 = new Date();
+  const [widgets, setWidgets] = useState<TrackingWidget[]>(loadWidgets);
+  const [trackMes, setTrackMes] = useState(hoje2.getMonth());
+  const [trackAno] = useState(hoje2.getFullYear());
+  const [addingWidget, setAddingWidget] = useState(false);
+  const [editingWid, setEditingWid] = useState<string | null>(null);
+  const [wForm, setWForm] = useState<Omit<TrackingWidget, 'id'>>({ label: '', meta: 0, atual: 0, formato: 'brl' });
+
+  const persistWidgets = useCallback((w: TrackingWidget[]) => { setWidgets(w); saveWidgets(w); }, []);
+
+  function addWidget() {
+    if (!wForm.label.trim()) return;
+    const w: TrackingWidget = { id: uidT(), ...wForm, label: wForm.label.trim() };
+    persistWidgets([...widgets, w]);
+    setAddingWidget(false);
+    setWForm({ label: '', meta: 0, atual: 0, formato: 'brl' });
+  }
+
+  function updateWidget() {
+    if (!editingWid) return;
+    persistWidgets(widgets.map(w => w.id === editingWid ? { ...w, ...wForm, label: wForm.label.trim() } : w));
+    setEditingWid(null);
+  }
+
+  function openEdit(w: TrackingWidget) {
+    setWForm({ label: w.label, meta: w.meta, atual: w.atual, formato: w.formato });
+    setEditingWid(w.id);
+  }
+
+  function deleteWidget(id: string) { persistWidgets(widgets.filter(w => w.id !== id)); }
+
+  function moveWidget(idx: number, dir: -1 | 1) {
+    const next = [...widgets];
+    const swap = idx + dir;
+    if (swap < 0 || swap >= next.length) return;
+    [next[idx], next[swap]] = [next[swap], next[idx]];
+    persistWidgets(next);
+  }
 
   const indices = dashGetMesesRange(dashState);
   const dados = dashSomarMeses(indices, meses, premissas);
@@ -313,6 +371,137 @@ export default function DashboardPanel() {
           </div>
         ))}
       </div>
+
+      {/* ═══════════════ ACOMPANHAMENTO ═══════════════ */}
+      <div className="section" style={{ marginTop: 40 }}>
+        <div className="section-eyebrow">Monitoramento</div>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap' }}>
+          <div className="section-title" style={{ margin: 0 }}>Acompanhamento</div>
+          {/* Navegação de mês */}
+          <div className="track-nav">
+            <button className="icon-btn" onClick={() => setTrackMes(m => Math.max(0, m - 1))}>‹</button>
+            <span className="track-nav-label">{TRACK_MESES_FULL[trackMes]} {trackAno}</span>
+            <button className="icon-btn" onClick={() => setTrackMes(m => Math.min(11, m + 1))}>›</button>
+          </div>
+          <div className="track-month-tabs">
+            {TRACK_MESES.map((m, i) => (
+              <button key={m} className={`track-month-tab${trackMes === i ? ' active' : ''}`}
+                onClick={() => setTrackMes(i)}>{m}</button>
+            ))}
+          </div>
+          <button className="btn-ghost" style={{ marginLeft: 'auto' }}
+            onClick={() => { setWForm({ label: '', meta: 0, atual: 0, formato: 'brl' }); setAddingWidget(true); }}>
+            + Adicionar métrica
+          </button>
+        </div>
+      </div>
+
+      {widgets.length === 0 && !addingWidget && (
+        <div className="track-empty">
+          Nenhuma métrica de acompanhamento. Clique em "+ Adicionar métrica" para começar.
+        </div>
+      )}
+
+      <div className="track-grid">
+        {widgets.map((w, i) => {
+          const pctVal = w.meta > 0 ? Math.min(200, Math.round(w.atual / w.meta * 100)) : 0;
+          const batida = pctVal >= 100;
+          const superado = w.atual - w.meta;
+          return (
+            <div key={w.id} className={`track-card${batida ? ' batida' : ''}`}>
+              <div className="track-card-header">
+                <span className="track-card-label">{w.label}</span>
+                <div className="track-card-actions">
+                  <button className="icon-btn" title="Mover para cima" onClick={() => moveWidget(i, -1)}>↑</button>
+                  <button className="icon-btn" title="Mover para baixo" onClick={() => moveWidget(i, 1)}>↓</button>
+                  <button className="icon-btn" title="Editar" onClick={() => openEdit(w)}>✎</button>
+                  <button className="icon-btn" style={{ color: 'var(--red)' }} title="Remover" onClick={() => deleteWidget(w.id)}>✕</button>
+                </div>
+              </div>
+
+              {batida && <div className="track-meta-batida">META BATIDA! {pctVal}%</div>}
+
+              <div className="track-bar-track">
+                <div className="track-bar-fill" style={{
+                  width: `${Math.min(100, pctVal)}%`,
+                  background: batida ? 'var(--green)' : pctVal > 60 ? 'var(--amber)' : 'var(--red)',
+                }} />
+              </div>
+
+              <div className="track-row-vals">
+                <div className="track-val-item">
+                  <span className="track-val-lbl">META</span>
+                  <span className="track-val-num">{fmtWidget(w.meta, w.formato)}</span>
+                </div>
+                <div className="track-val-item">
+                  <span className="track-val-lbl">ATUAL</span>
+                  <span className="track-val-num" style={{ color: batida ? 'var(--green)' : 'var(--txt-0)' }}>
+                    {fmtWidget(w.atual, w.formato)}
+                  </span>
+                </div>
+                {batida && (
+                  <div className="track-val-item">
+                    <span className="track-val-lbl">SUPERADO</span>
+                    <span className="track-val-num" style={{ color: 'var(--green)' }}>+{fmtWidget(superado, w.formato)}</span>
+                  </div>
+                )}
+                {!batida && (
+                  <div className="track-val-item">
+                    <span className="track-val-lbl">FALTA</span>
+                    <span className="track-val-num" style={{ color: 'var(--red)' }}>{fmtWidget(Math.max(0, w.meta - w.atual), w.formato)}</span>
+                  </div>
+                )}
+              </div>
+            </div>
+          );
+        })}
+      </div>
+
+      {/* Modal adicionar / editar widget */}
+      {(addingWidget || editingWid) && (
+        <div className="modal-overlay" onClick={() => { setAddingWidget(false); setEditingWid(null); }}>
+          <div className="modal-box" style={{ maxWidth: 400 }} onClick={e => e.stopPropagation()}>
+            <div className="modal-header">
+              <div className="modal-title">{addingWidget ? 'Nova métrica' : 'Editar métrica'}</div>
+              <button className="modal-close" onClick={() => { setAddingWidget(false); setEditingWid(null); }}>✕</button>
+            </div>
+            <div className="modal-body" style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+              <div>
+                <div className="field-label">Nome da métrica</div>
+                <input className="field-input" autoFocus placeholder="Ex: Faturamento, Contratos..."
+                  value={wForm.label} onChange={e => setWForm(f => ({ ...f, label: e.target.value }))} />
+              </div>
+              <div>
+                <div className="field-label">Formato</div>
+                <div className="seg-group">
+                  {(['brl','number','pct'] as const).map(f => (
+                    <button key={f} className={`seg-btn${wForm.formato === f ? ' active' : ''}`}
+                      onClick={() => setWForm(ff => ({ ...ff, formato: f }))}>
+                      {f === 'brl' ? 'R$' : f === 'pct' ? '%' : '123'}
+                    </button>
+                  ))}
+                </div>
+              </div>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+                <div>
+                  <div className="field-label">Meta</div>
+                  <input className="field-input" type="number" min={0}
+                    value={wForm.meta} onChange={e => setWForm(f => ({ ...f, meta: Number(e.target.value) }))} />
+                </div>
+                <div>
+                  <div className="field-label">Atual</div>
+                  <input className="field-input" type="number" min={0}
+                    value={wForm.atual} onChange={e => setWForm(f => ({ ...f, atual: Number(e.target.value) }))} />
+                </div>
+              </div>
+            </div>
+            <div className="modal-footer">
+              <button className="btn-ghost" onClick={() => { setAddingWidget(false); setEditingWid(null); }}>Cancelar</button>
+              <button className="btn-primary" onClick={addingWidget ? addWidget : updateWidget}>Salvar</button>
+            </div>
+          </div>
+        </div>
+      )}
     </>
   );
 }

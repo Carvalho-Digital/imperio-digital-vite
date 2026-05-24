@@ -6,11 +6,16 @@ import ProdutosMixPanel from './components/panels/ProdutosMixPanel';
 import TimeVendasPanel from './components/panels/TimeVendasPanel';
 import FunisPanel from './components/panels/FunisPanel';
 import RotinaPanel from './components/panels/RotinaPanel';
+import ColaboradoresPanel from './components/panels/ColaboradoresPanel';
+import ScriptsPanel from './components/panels/ScriptsPanel';
+import OperacaoDashPanel from './components/panels/OperacaoDashPanel';
+import MapaMentalPanel from './components/panels/MapaMentalPanel';
+import AgentePanel from './components/panels/AgentePanel';
 import AuthScreen from './components/AuthScreen';
 import { useAuth } from './context/AuthContext';
 import { useAppContext } from './context/AppContext';
 
-export type TabId = 'dashboard' | 'plano' | 'produtos' | 'time' | 'funis' | 'rotina';
+export type TabId = 'dashboard' | 'plano' | 'produtos' | 'time' | 'funis' | 'rotina' | 'colaboradores' | 'scripts' | 'operacao' | 'mapa-mental' | 'agente';
 
 function LoadingScreen() {
   return (
@@ -52,6 +57,21 @@ function MainApp() {
         </div>
         <div className={`tab-panel${activeTab === 'rotina' ? ' active' : ''}`} id="panel-rotina">
           <RotinaPanel />
+        </div>
+        <div className={`tab-panel${activeTab === 'colaboradores' ? ' active' : ''}`} id="panel-colaboradores">
+          <ColaboradoresPanel />
+        </div>
+        <div className={`tab-panel${activeTab === 'scripts' ? ' active' : ''}`} id="panel-scripts">
+          <ScriptsPanel />
+        </div>
+        <div className={`tab-panel${activeTab === 'operacao' ? ' active' : ''}`} id="panel-operacao">
+          <OperacaoDashPanel />
+        </div>
+        <div className={`tab-panel${activeTab === 'mapa-mental' ? ' active' : ''}`} id="panel-mapa-mental">
+          <MapaMentalPanel />
+        </div>
+        <div className={`tab-panel${activeTab === 'agente' ? ' active' : ''}`} id="panel-agente">
+          <AgentePanel />
         </div>
       </main>
     </div>

@@ -105,6 +105,11 @@ export interface Lancamento {
   propostas: number;
   contratos: number;
   receita: number;
+  // campos novos (operação)
+  qualificados?: number;
+  leads_desqualificados?: number;
+  followups_enviados?: number;
+  retornos_followup?: number;
 }
 
 export interface VendedorMetas {
@@ -122,6 +127,93 @@ export interface Vendedor {
   metas: VendedorMetas;
   metasOverride: Record<string, number>;
   lancamentos: Lancamento[];
+}
+
+/* ============================================================
+   PERFIS DE COLABORADORES (localStorage)
+   ============================================================ */
+
+export type ColaboradorNivel = 'junior' | 'pleno' | 'senior';
+export type ColaboradorTipo = 'sdr' | 'closer';
+
+export interface ColaboradorProfile {
+  nivel?: ColaboradorNivel;
+  tipo?: ColaboradorTipo;
+  clientes?: string[];
+}
+
+/* ============================================================
+   SCRIPTS (localStorage)
+   ============================================================ */
+
+export interface Script {
+  id: string;
+  titulo: string;
+  conteudo: string;
+  criadoEm: string;
+}
+
+export interface ScriptModule {
+  id: string;
+  nome: string;
+  scripts: Script[];
+}
+
+/* ============================================================
+   TAREFAS + COMPROMISSOS (Meu Painel — localStorage)
+   ============================================================ */
+
+export interface Tarefa {
+  id: string;
+  texto: string;
+  prazo?: string;
+  concluida: boolean;
+  vendedorId: string;
+}
+
+export interface Compromisso {
+  id: string;
+  titulo: string;
+  data: string;
+  hora: string;
+  vendedorId: string;
+}
+
+export interface EstudoDia {
+  vendedorId: string;
+  texto: string;
+  data: string; // YYYY-MM-DD
+}
+
+/* ============================================================
+   MAPA MENTAL (localStorage)
+   ============================================================ */
+
+export interface MindMapNode {
+  id: string;
+  x: number;
+  y: number;
+  texto: string;
+  cor?: string;
+}
+
+export interface MindMapEdge {
+  id: string;
+  from: string;
+  to: string;
+}
+
+/* ============================================================
+   TRACKING WIDGETS — Dashboard (localStorage)
+   ============================================================ */
+
+export interface TrackingWidget {
+  id: string;
+  label: string;
+  meta: number;
+  atual: number;
+  formato: 'brl' | 'number' | 'pct';
+  unidade?: string;
 }
 
 export type PeriodoTipo = 'diario' | 'semanal' | 'mensal' | 'trimestral' | 'anual' | 'custom';
