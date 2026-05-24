@@ -13,7 +13,7 @@ const SUGESTOES_RAPIDAS = [
 function uid() { return Math.random().toString(36).slice(2, 10); }
 
 export default function AgentePanel() {
-  const { state } = useAppContext();
+  const { state, dispatch } = useAppContext();
   const { session } = useAuth();
   const userName = (session?.user?.user_metadata?.full_name as string) || session?.user?.email?.split('@')[0] || 'você';
 
@@ -94,10 +94,27 @@ export default function AgentePanel() {
     }
   };
 
-  // Stub — vai chamar dispatch real do AppContext na próxima task
-  const executarRegistrarContrato = async (_args: PendingAction extends { kind: 'registrar_contrato'; args: infer A } ? A : never) => {
-    // TODO: integrar com state.app.dispatch + db.ts pra persistir no Supabase
-    return true;
+  const executarRegistrarContrato = async (args: PendingAction extends { kind: 'registrar_contrato'; args: infer A } ? A : never) => {
+    try {
+      const idx = Math.max(0, Math.min(11, args.mes - 1));
+      dispatch({
+        type: 'ADD_CONTRATO',
+        idx,
+        pid: args.produto_code,
+        contrato: {
+          valor: args.valor,
+          tipo: args.tipo,
+          meses: args.tipo === 'mrr' ? (args.meses ?? 6) : null,
+          comboItens: null,
+          cliente: args.cliente,
+          formaPagamento: args.formaPagamento,
+          parcelas: args.parcelas,
+        },
+      });
+      return true;
+    } catch {
+      return false;
+    }
   };
 
   const micOn = speech.state === 'listening';
