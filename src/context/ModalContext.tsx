@@ -1,4 +1,5 @@
 import React, { createContext, useContext, useRef, useState } from 'react';
+import { createPortal } from 'react-dom';
 import type { ReactNode } from 'react';
 import type {
   PromptOpts, ConfirmOpts, AlertOpts, ChoiceOpts,
@@ -118,23 +119,30 @@ export function ModalProvider({ children }: { children: ReactNode }) {
   return (
     <ModalCtx.Provider value={{ showPrompt, showConfirm, showAlert, showChoice, showAddContrato, showDetalharContrato }}>
       {children}
-      {ms.promptOpen && (
-        <ModalPrompt opts={ms.promptOpts} onResolve={resolvePrompt} />
-      )}
-      {ms.confirmOpen && (
-        <ModalConfirm opts={ms.confirmOpts} onResolve={resolveConfirm} />
-      )}
-      {ms.alertOpen && (
-        <ModalAlert opts={ms.alertOpts} onResolve={resolveAlert} />
-      )}
-      {ms.choiceOpen && (
-        <ModalChoice opts={ms.choiceOpts} onResolve={resolveChoice} />
-      )}
-      {ms.addContratoOpen && ms.addContratoOpts && (
-        <ModalAddContrato opts={ms.addContratoOpts} onResolve={resolveContrato} />
-      )}
-      {ms.detalharContratoOpen && ms.detalharContratoOpts && (
-        <ModalDetalharContrato opts={ms.detalharContratoOpts} onResolve={resolveDetalhar} />
+      {/* Todos modais renderizam em document.body via Portal — evita problemas de
+          containing block (transforms/filters em ancestrais quebrando position:fixed). */}
+      {createPortal(
+        <>
+          {ms.promptOpen && (
+            <ModalPrompt opts={ms.promptOpts} onResolve={resolvePrompt} />
+          )}
+          {ms.confirmOpen && (
+            <ModalConfirm opts={ms.confirmOpts} onResolve={resolveConfirm} />
+          )}
+          {ms.alertOpen && (
+            <ModalAlert opts={ms.alertOpts} onResolve={resolveAlert} />
+          )}
+          {ms.choiceOpen && (
+            <ModalChoice opts={ms.choiceOpts} onResolve={resolveChoice} />
+          )}
+          {ms.addContratoOpen && ms.addContratoOpts && (
+            <ModalAddContrato opts={ms.addContratoOpts} onResolve={resolveContrato} />
+          )}
+          {ms.detalharContratoOpen && ms.detalharContratoOpts && (
+            <ModalDetalharContrato opts={ms.detalharContratoOpts} onResolve={resolveDetalhar} />
+          )}
+        </>,
+        document.body
       )}
     </ModalCtx.Provider>
   );

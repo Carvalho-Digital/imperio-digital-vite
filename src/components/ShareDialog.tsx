@@ -1,8 +1,10 @@
 import { useEffect, useState } from 'react';
+import { createPortal } from 'react-dom';
 import {
   listTokens, createToken, revokeToken,
   buildPublicUrl, type ShareToken,
 } from '../lib/shareTokens';
+import { CopyIcon, CheckIcon, CloseIcon, PlusIcon, PowerOffIcon } from './icons/Icons';
 import type { Contrato } from '../types';
 
 interface Props {
@@ -72,7 +74,7 @@ export default function ShareDialog({ contrato, contratoLabel, onClose }: Props)
     } catch { /* noop */ }
   };
 
-  return (
+  return createPortal(
     <div className="modal-backdrop show" onClick={onClose}>
       <div
         className="modal modal-sm"
@@ -86,7 +88,11 @@ export default function ShareDialog({ contrato, contratoLabel, onClose }: Props)
               {contratoLabel}
             </div>
           </div>
-          <button className="modal-close" onClick={onClose}>×</button>
+          <button
+            className="modal-close"
+            onClick={onClose}
+            style={{ display: 'grid', placeItems: 'center' }}
+          ><CloseIcon size={14} /></button>
         </div>
 
         <div className="modal-body">
@@ -164,14 +170,16 @@ export default function ShareDialog({ contrato, contratoLabel, onClose }: Props)
               className="btn btn-primary"
               onClick={gerar}
               disabled={working}
-              style={{ opacity: working ? 0.5 : 1 }}
+              style={{ opacity: working ? 0.5 : 1, display: 'inline-flex', alignItems: 'center', gap: 6 }}
             >
-              {working ? 'Gerando…' : '+ Gerar novo link'}
+              <PlusIcon size={13} />
+              {working ? 'Gerando…' : 'Gerar novo link'}
             </button>
           )}
         </div>
       </div>
-    </div>
+    </div>,
+    document.body
   );
 }
 
@@ -226,18 +234,21 @@ function TokenRow({
                 background: copied ? 'rgba(52,211,153,.15)' : 'var(--bg-2)',
                 color: copied ? '#34d399' : 'var(--txt-1)',
                 cursor: 'pointer', fontFamily: 'inherit', fontSize: 11.5, fontWeight: 600,
-                whiteSpace: 'nowrap',
+                whiteSpace: 'nowrap', display: 'inline-flex', alignItems: 'center', gap: 6,
               }}
-            >{copied ? '✓ copiado' : '⧉ copiar'}</button>
+            >
+              {copied ? <CheckIcon size={13} /> : <CopyIcon size={13} />}
+              {copied ? 'copiado' : 'copiar'}
+            </button>
             <button
               type="button" onClick={onRevoke} disabled={working} title="Revogar este link"
               style={{
                 width: 32, height: 32, borderRadius: 8,
                 background: 'var(--bg-2)', border: '1px solid var(--border)',
                 color: '#f87171', cursor: working ? 'wait' : 'pointer',
-                fontSize: 14, display: 'grid', placeItems: 'center', fontFamily: 'inherit',
+                display: 'grid', placeItems: 'center', fontFamily: 'inherit',
               }}
-            >×</button>
+            ><PowerOffIcon size={14} /></button>
           </>
         )}
       </div>
@@ -264,8 +275,12 @@ function EmptyTokens({ onCreate, working }: { onCreate: () => void; working: boo
           background: 'var(--silver-grad)', color: '#0a0a0c',
           fontWeight: 700, fontSize: 12.5, cursor: working ? 'wait' : 'pointer',
           fontFamily: 'inherit', opacity: working ? 0.5 : 1,
+          display: 'inline-flex', alignItems: 'center', gap: 6,
         }}
-      >{working ? 'Gerando…' : 'Gerar primeiro link'}</button>
+      >
+        <PlusIcon size={13} />
+        {working ? 'Gerando…' : 'Gerar primeiro link'}
+      </button>
     </div>
   );
 }

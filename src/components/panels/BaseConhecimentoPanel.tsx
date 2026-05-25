@@ -1,6 +1,8 @@
 import { useEffect, useMemo, useState } from 'react';
+import { createPortal } from 'react-dom';
 import { useAppContext } from '../../context/AppContext';
 import { useModal } from '../../context/ModalContext';
+import { EditIcon, TrashIcon, CloseIcon, PlusIcon } from '../icons/Icons';
 import {
   listKnowledge, createKnowledge, updateKnowledge, deleteKnowledge,
   totalKnowledgeChars, KNOWLEDGE_MAX_CHARS,
@@ -129,8 +131,9 @@ export default function BaseConhecimentoPanel() {
             background: 'var(--silver-grad)', color: '#0a0a0c',
             fontWeight: 700, fontSize: 12.5, cursor: 'pointer',
             fontFamily: 'inherit', whiteSpace: 'nowrap',
+            display: 'inline-flex', alignItems: 'center', gap: 6,
           }}
-        >+ Nova entrada</button>
+        ><PlusIcon size={13} />Nova entrada</button>
       </div>
 
       {/* Barra de uso de tokens */}
@@ -267,10 +270,10 @@ function EntryCard({ entry, onEdit, onToggle, onDelete }: {
         </div>
         <div style={{ display: 'flex', gap: 6, flexShrink: 0 }}>
           <IconButton title={entry.isActive ? 'Desativar' : 'Ativar'} onClick={onToggle}>
-            {entry.isActive ? '◉' : '◯'}
+            <span style={{ fontSize: 14, lineHeight: 1 }}>{entry.isActive ? '◉' : '◯'}</span>
           </IconButton>
-          <IconButton title="Editar" onClick={onEdit}>✎</IconButton>
-          <IconButton title="Apagar" onClick={onDelete} danger>×</IconButton>
+          <IconButton title="Editar" onClick={onEdit}><EditIcon size={13} /></IconButton>
+          <IconButton title="Apagar" onClick={onDelete} danger><TrashIcon size={13} /></IconButton>
         </div>
       </div>
     </div>
@@ -323,7 +326,7 @@ function EditorModal({ form, onChange, onCancel, onSave }: {
   form: FormState; onChange: (f: FormState) => void; onCancel: () => void; onSave: () => void;
 }) {
   const valid = form.title.trim().length > 0 && form.content.trim().length > 0;
-  return (
+  return createPortal(
     <div className="modal-backdrop show" onClick={onCancel}>
       <div className="modal modal-sm" onClick={e => e.stopPropagation()} style={{ maxWidth: 620, padding: 28 }}>
         <div className="modal-head">
@@ -333,7 +336,9 @@ function EditorModal({ form, onChange, onCancel, onSave }: {
               O Agente vai ler isso e usar como referência.
             </div>
           </div>
-          <button className="modal-close" onClick={onCancel}>×</button>
+          <button className="modal-close" onClick={onCancel} style={{ display: 'grid', placeItems: 'center' }}>
+            <CloseIcon size={14} />
+          </button>
         </div>
 
         <div className="modal-body">
@@ -407,6 +412,7 @@ function EditorModal({ form, onChange, onCancel, onSave }: {
           >{form.id ? 'Salvar alterações' : 'Adicionar'}</button>
         </div>
       </div>
-    </div>
+    </div>,
+    document.body
   );
 }

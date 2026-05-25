@@ -4,6 +4,7 @@ import { useModal } from '../../context/ModalContext';
 import { getContratos } from '../../lib/calculations';
 import { fmtBRLCompleto } from '../../lib/formatters';
 import ShareDialog from '../ShareDialog';
+import { LinkIcon, EditIcon, TrashIcon } from '../icons/Icons';
 import type { Contrato, ProdutoState } from '../../types';
 
 type StatusFicha = 'completa' | 'incompleta' | 'sem';
@@ -304,9 +305,15 @@ function ContractCard({
 
       {/* Ações */}
       <div style={{ display: 'flex', gap: 6, flexShrink: 0 }} onClick={e => e.stopPropagation()}>
-        <ActionButton title="Copiar link público" onClick={onCopyLink}>🔗</ActionButton>
-        <ActionButton title="Editar ficha" onClick={onEdit}>✎</ActionButton>
-        <ActionButton title="Remover contrato" onClick={onRemove} danger>×</ActionButton>
+        <ActionButton title="Compartilhar link público" onClick={onCopyLink}>
+          <LinkIcon size={14} />
+        </ActionButton>
+        <ActionButton title="Editar ficha" onClick={onEdit}>
+          <EditIcon size={14} />
+        </ActionButton>
+        <ActionButton title="Remover contrato" onClick={onRemove} danger>
+          <TrashIcon size={14} />
+        </ActionButton>
       </div>
     </div>
   );
