@@ -41,6 +41,7 @@ export interface AgentTurnRequest {
   message: string;
   history: { role: AgentRole; content: string }[];
   dashboard_context?: string;
+  knowledge_context?: string;
 }
 
 export interface AgentTurnResponse {

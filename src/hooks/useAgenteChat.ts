@@ -1,8 +1,10 @@
-import { useCallback, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { callAgent, type AgentMessage, type PendingAction } from '../lib/agent';
 import { useAppContext } from '../context/AppContext';
 import { useAuth } from '../context/AuthContext';
 import { getContratos } from '../lib/calculations';
+import { listKnowledge, buildKnowledgeContext } from '../lib/agentKnowledge';
+import type { KnowledgeEntry } from '../types';
 
 function uid() { return Math.random().toString(36).slice(2, 10); }
 
@@ -52,9 +54,20 @@ ${produtosResumo}`;
 }
 
 export function useAgenteChat(opts: Options = {}) {
-  const { state, dispatch } = useAppContext();
+  const { state, dispatch, workspaceId } = useAppContext();
   const { session } = useAuth();
   const userName = (session?.user?.user_metadata?.full_name as string) || session?.user?.email?.split('@')[0] || 'Marcos';
+
+  const [knowledge, setKnowledge] = useState<KnowledgeEntry[]>([]);
+  useEffect(() => {
+    if (!workspaceId) return;
+    let cancel = false;
+    listKnowledge(workspaceId)
+      .then(entries => { if (!cancel) setKnowledge(entries); })
+      .catch(() => { /* silencia falha — agente continua sem a base */ });
+    return () => { cancel = true; };
+  }, [workspaceId]);
+  const knowledgeContext = useMemo(() => buildKnowledgeContext(knowledge), [knowledge]);
 
   const [messages, setMessages] = useState<AgentMessage[]>(() =>
     opts.welcomeText
@@ -78,7 +91,7 @@ export function useAgenteChat(opts: Options = {}) {
     setSending(true);
     try {
       const history = messages.map(m => ({ role: m.role, content: m.content }));
-      const resp = await callAgent({ message: trimmed, history, dashboard_context: dashboardContext });
+      const resp = await callAgent({ message: trimmed, history, dashboard_context: dashboardContext, knowledge_context: knowledgeContext });
       setMessages(prev => [...prev, {
         id: uid(), role: 'assistant', createdAt: Date.now(),
         content: resp.reply, pendingAction: resp.pendingAction,
@@ -93,7 +106,7 @@ export function useAgenteChat(opts: Options = {}) {
     } finally {
       setSending(false);
     }
-  }, [messages, sending, dashboardContext]);
+  }, [messages, sending, dashboardContext, knowledgeContext]);
 
   const confirmAction = useCallback(async (msgId: string, action: PendingAction, ok: boolean) => {
     setMessages(prev => prev.map(m => m.id === msgId ? { ...m, pendingAction: undefined } : m));

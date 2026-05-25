@@ -30,6 +30,29 @@ export interface Contrato {
   ficha?: ContratoFicha;
 }
 
+/* Base de Conhecimento do Agente IA */
+export type KnowledgeCategory = 'script' | 'playbook' | 'objecao' | 'faq' | 'regra' | 'outros';
+
+export interface KnowledgeEntry {
+  id: string;
+  workspaceId: string;
+  title: string;
+  content: string;
+  category: KnowledgeCategory;
+  isActive: boolean;
+  sortOrder: number;
+  updatedAt: string;
+}
+
+export const KNOWLEDGE_CATEGORIES: { id: KnowledgeCategory; label: string; icon: string }[] = [
+  { id: 'script',   label: 'Script',           icon: '≋' },
+  { id: 'playbook', label: 'Playbook',         icon: '⌖' },
+  { id: 'objecao',  label: 'Tratativa de objeção', icon: '⚐' },
+  { id: 'faq',      label: 'FAQ',              icon: '?' },
+  { id: 'regra',    label: 'Regra interna',    icon: '!' },
+  { id: 'outros',   label: 'Outros',           icon: '•' },
+];
+
 /* Form Builder lite — definições dos campos custom da Ficha */
 export type FieldType = 'text' | 'textarea' | 'number' | 'date' | 'boolean' | 'select';
 

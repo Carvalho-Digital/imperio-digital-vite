@@ -27,9 +27,10 @@ const NAV_EQUIPE: NavItem[] = [
 ];
 
 const NAV_INTELIGENCIA: NavItem[] = [
-  { id: 'agente',      icon: '⬢', label: 'Agente' },
-  { id: 'scripts',     icon: '≋', label: 'Biblioteca de Scripts' },
-  { id: 'mapa-mental', icon: '⬡', label: 'Mapa Mental' },
+  { id: 'agente',         icon: '⬢', label: 'Agente' },
+  { id: 'base-agente',    icon: '◈', label: 'Base do Agente' },
+  { id: 'scripts',        icon: '≋', label: 'Biblioteca de Scripts' },
+  { id: 'mapa-mental',    icon: '⬡', label: 'Mapa Mental' },
 ];
 
 interface Props {
