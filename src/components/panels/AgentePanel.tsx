@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import ReactMarkdown from 'react-markdown';
-import { useSpeechRecognition } from '../../hooks/useSpeechRecognition';
+import { useSpeechRecognition, detectVoiceCompatibilityWarning } from '../../hooks/useSpeechRecognition';
 import { useAgenteChat } from '../../hooks/useAgenteChat';
 import { useAuth } from '../../context/AuthContext';
 import AgenteLogo from '../AgenteLogo';
@@ -36,6 +36,8 @@ export default function AgentePanel() {
   const speech = useSpeechRecognition('pt-BR');
   const [draft, setDraft] = useState('');
   const [chatExpanded, setChatExpanded] = useState(false);
+  const [voiceWarning] = useState(() => detectVoiceCompatibilityWarning());
+  const [voiceWarningDismissed, setVoiceWarningDismissed] = useState(false);
   const listRef = useRef<HTMLDivElement>(null);
 
   const showHero = !chatExpanded && !hasConversation;
@@ -141,6 +143,26 @@ export default function AgentePanel() {
         </div>
       )}
 
+      {/* Aviso de compatibilidade de voz (Edge/Mac, Firefox) */}
+      {voiceWarning && !voiceWarningDismissed && (
+        <div style={{
+          fontSize: 11.5, color: '#fbbf24', marginBottom: 8,
+          position: 'relative', zIndex: 1, maxWidth: 760,
+          background: 'rgba(251,191,36,.08)', padding: '8px 12px',
+          borderRadius: 8, border: '1px solid rgba(251,191,36,.25)',
+          display: 'flex', alignItems: 'center', gap: 10, justifyContent: 'space-between',
+        }}>
+          <span>🎤 {voiceWarning}</span>
+          <button
+            type="button"
+            onClick={() => setVoiceWarningDismissed(true)}
+            style={{
+              background: 'transparent', border: 'none', color: 'inherit',
+              cursor: 'pointer', fontSize: 14, padding: '0 4px', fontFamily: 'inherit',
+            }}
+          >×</button>
+        </div>
+      )}
       {/* Erro do agente */}
       {error && (
         <div style={{ fontSize: 11.5, color: '#f87171', marginBottom: 8, position: 'relative', zIndex: 1 }}>

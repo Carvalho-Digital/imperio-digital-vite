@@ -21,6 +21,27 @@ function getRecognitionCtor(): SpeechRecognitionCtor | null {
   return w.SpeechRecognition || w.webkitSpeechRecognition || null;
 }
 
+/**
+ * Detecta combinações de navegador + SO conhecidas por ter problemas
+ * com Web Speech API. Retorna um aviso quando há problema esperado.
+ */
+export function detectVoiceCompatibilityWarning(): string | null {
+  if (typeof navigator === 'undefined') return null;
+  const ua = navigator.userAgent;
+  const platform = navigator.platform || '';
+  const isMac = /Mac|iPhone|iPad/.test(platform) || /Macintosh/.test(ua);
+  const isEdge = / Edg\//.test(ua);
+  const isFirefox = /Firefox\//.test(ua);
+
+  if (isFirefox) {
+    return 'Firefox não suporta reconhecimento de voz. Use Chrome ou Safari pra falar com o agente.';
+  }
+  if (isEdge && isMac) {
+    return 'Edge no Mac tem problemas conhecidos com reconhecimento de voz (erro de rede com servidor da Microsoft). Use Chrome ou Safari pra funcionar bem.';
+  }
+  return null;
+}
+
 export interface UseSpeechRecognitionReturn {
   state: RecogState;
   transcript: string;
