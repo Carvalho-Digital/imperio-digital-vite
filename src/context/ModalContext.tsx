@@ -5,6 +5,7 @@ import type {
   AddContratoOpts, DetalharContratoOpts, Contrato, ContratoFicha,
   ModalContextValue, FormaPagamento,
 } from '../types';
+import { callExtractFicha } from '../lib/agent';
 
 interface ModalState {
   promptOpen: boolean;
@@ -582,6 +583,53 @@ function ModalDetalharContrato({
   const [notasJuridico, setNotasJur]        = useStateLocal<string>(fichaAtual?.notasJuridico ?? '');
   const [notasLivres, setNotasLivres]       = useStateLocal<string>(fichaAtual?.notasLivres ?? '');
 
+  // Fase B — auto-preencher por transcrição Read AI
+  const [transcriptOpen, setTranscriptOpen] = useStateLocal(false);
+  const [transcriptText, setTranscriptText] = useStateLocal('');
+  const [extracting, setExtracting]         = useStateLocal(false);
+  const [extractError, setExtractError]     = useStateLocal<string | null>(null);
+  // Marca quais campos foram preenchidos pela IA (pra mostrar badge ⭐)
+  const [iaFilled, setIaFilled]             = useStateLocal<Set<string>>(new Set());
+
+  const handleExtract = async () => {
+    if (!transcriptText.trim() || extracting) return;
+    setExtractError(null);
+    setExtracting(true);
+    try {
+      const e = await callExtractFicha(transcriptText.trim());
+      const filled = new Set<string>();
+      if (e.vigenciaInicio)    { setVigenciaInicio(e.vigenciaInicio);   filled.add('vigenciaInicio'); }
+      if (e.vigenciaMeses)     { setVigenciaMeses(e.vigenciaMeses);     filled.add('vigenciaMeses'); }
+      if (e.entregaveis)       { setEntregaveis(e.entregaveis);         filled.add('entregaveis'); }
+      if (e.notasOperacional)  { setNotasOp(e.notasOperacional);        filled.add('notasOperacional'); }
+      if (e.notasJuridico)     { setNotasJur(e.notasJuridico);          filled.add('notasJuridico'); }
+      if (e.notasLivres)       { setNotasLivres(e.notasLivres);         filled.add('notasLivres'); }
+      setIaFilled(filled);
+      setTranscriptOpen(false);
+    } catch (err) {
+      setExtractError(err instanceof Error ? err.message : 'Erro desconhecido');
+    } finally {
+      setExtracting(false);
+    }
+  };
+
+  const markEdited = (key: string) => {
+    if (iaFilled.has(key)) {
+      const next = new Set(iaFilled);
+      next.delete(key);
+      setIaFilled(next);
+    }
+  };
+
+  const IaBadge = ({ k }: { k: string }) =>
+    iaFilled.has(k) ? (
+      <span style={{
+        marginLeft: 6, fontSize: 9, padding: '2px 6px',
+        background: 'rgba(96,165,250,.15)', color: '#60a5fa',
+        borderRadius: 4, fontWeight: 700, letterSpacing: 0.3,
+      }}>★ IA — REVISAR</span>
+    ) : null;
+
   const dataFim = (() => {
     if (!vigenciaInicio || !vigenciaMeses) return '';
     const d = new Date(vigenciaInicio + 'T00:00:00');
@@ -634,6 +682,80 @@ function ModalDetalharContrato({
         </div>
 
         <div className="modal-body">
+          {/* Banner Read AI */}
+          {!transcriptOpen ? (
+            <div style={{
+              background: 'linear-gradient(135deg, rgba(96,165,250,.10), rgba(96,165,250,.04))',
+              border: '1px solid rgba(96,165,250,.25)',
+              borderRadius: 10, padding: '10px 12px', marginBottom: blockGap,
+              fontSize: 12, color: 'var(--txt-1)', lineHeight: 1.5,
+              display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12,
+            }}>
+              <div>
+                <strong style={{ color: '#60a5fa' }}>⚡ Cola a transcrição do Read AI</strong>
+                <div style={{ fontSize: 11, color: 'var(--txt-2)', marginTop: 2 }}>
+                  A IA lê a transcrição e preenche os campos pra você revisar.
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => setTranscriptOpen(true)}
+                style={{
+                  padding: '7px 12px', borderRadius: 8,
+                  background: 'rgba(96,165,250,.15)',
+                  border: '1px solid rgba(96,165,250,.35)',
+                  color: '#60a5fa', fontWeight: 700, fontSize: 11.5,
+                  cursor: 'pointer', whiteSpace: 'nowrap', fontFamily: 'inherit',
+                }}
+              >Colar transcrição</button>
+            </div>
+          ) : (
+            <div style={{
+              background: 'var(--bg-2)', border: '1px solid var(--border)',
+              borderRadius: 10, padding: 12, marginBottom: blockGap,
+            }}>
+              <div style={{ fontSize: 11.5, color: 'var(--txt-2)', marginBottom: 6, fontWeight: 600 }}>
+                Cola aqui a transcrição da reunião (Read AI, Google Meet, Zoom etc):
+              </div>
+              <textarea
+                autoFocus
+                rows={6}
+                value={transcriptText}
+                onChange={e => setTranscriptText(e.target.value)}
+                placeholder="Cola o texto inteiro da reunião aqui — a IA extrai vigência, valor, entregáveis, notas pro time…"
+                className="form-input"
+                style={{ width: '100%', minHeight: 120, resize: 'vertical', fontFamily: 'inherit', fontSize: 12 }}
+                disabled={extracting}
+              />
+              {extractError && (
+                <div style={{ fontSize: 11, color: '#f87171', marginTop: 6 }}>⚠ {extractError}</div>
+              )}
+              <div style={{ display: 'flex', gap: 8, marginTop: 10, justifyContent: 'flex-end' }}>
+                <button
+                  type="button"
+                  onClick={() => { setTranscriptOpen(false); setTranscriptText(''); setExtractError(null); }}
+                  disabled={extracting}
+                  style={{
+                    padding: '7px 12px', borderRadius: 8, border: '1px solid var(--border)',
+                    background: 'var(--bg-1)', color: 'var(--txt-1)', cursor: 'pointer',
+                    fontFamily: 'inherit', fontSize: 11.5, fontWeight: 600,
+                  }}
+                >Cancelar</button>
+                <button
+                  type="button"
+                  onClick={handleExtract}
+                  disabled={!transcriptText.trim() || extracting}
+                  style={{
+                    padding: '7px 14px', borderRadius: 8, border: 'none',
+                    background: extracting ? 'var(--bg-3)' : 'var(--silver-grad)',
+                    color: '#0a0a0c', cursor: extracting ? 'wait' : 'pointer',
+                    fontFamily: 'inherit', fontSize: 11.5, fontWeight: 700,
+                  }}
+                >{extracting ? 'Extraindo…' : 'Extrair e preencher'}</button>
+              </div>
+            </div>
+          )}
+
           <div style={{
             background: 'var(--bg-2)', border: '1px solid var(--border)',
             borderRadius: 10, padding: '10px 12px', marginBottom: blockGap,
@@ -644,7 +766,11 @@ function ModalDetalharContrato({
 
           {/* ── Vigência ─────────────────────────────── */}
           <div style={{ marginBottom: blockGap }}>
-            <span style={labelStyle}>Vigência</span>
+            <span style={labelStyle}>
+              Vigência
+              <IaBadge k="vigenciaInicio" />
+              {!iaFilled.has('vigenciaInicio') && <IaBadge k="vigenciaMeses" />}
+            </span>
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
               <label>
                 <span style={{ ...hintStyle, marginTop: 0, marginBottom: 4, display: 'block' }}>Início</span>
@@ -653,7 +779,7 @@ function ModalDetalharContrato({
                   className="form-input"
                   style={inputStyle}
                   value={vigenciaInicio}
-                  onChange={e => setVigenciaInicio(e.target.value)}
+                  onChange={e => { setVigenciaInicio(e.target.value); markEdited('vigenciaInicio'); }}
                 />
               </label>
               <label>
@@ -664,7 +790,7 @@ function ModalDetalharContrato({
                   className="form-input"
                   style={inputStyle}
                   value={vigenciaMeses}
-                  onChange={e => setVigenciaMeses(parseInt(e.target.value) || 0)}
+                  onChange={e => { setVigenciaMeses(parseInt(e.target.value) || 0); markEdited('vigenciaMeses'); }}
                 />
               </label>
             </div>
@@ -675,52 +801,52 @@ function ModalDetalharContrato({
 
           {/* ── Entregáveis ──────────────────────────── */}
           <label style={{ display: 'block', marginBottom: blockGap }}>
-            <span style={labelStyle}>Entregáveis prometidos ao cliente</span>
+            <span style={labelStyle}>Entregáveis prometidos ao cliente<IaBadge k="entregaveis" /></span>
             <textarea
               className="form-input"
               rows={3}
               placeholder="Ex: Posicionamento completo + 2 reuniões extras por mês + adaptação de criativos pro nicho"
               value={entregaveis}
-              onChange={e => setEntregaveis(e.target.value)}
+              onChange={e => { setEntregaveis(e.target.value); markEdited('entregaveis'); }}
               style={{ ...inputStyle, resize: 'vertical', minHeight: 60, fontFamily: 'inherit' }}
             />
           </label>
 
           {/* ── Notas operacional ────────────────────── */}
           <label style={{ display: 'block', marginBottom: blockGap }}>
-            <span style={labelStyle}>Notas pro time operacional</span>
+            <span style={labelStyle}>Notas pro time operacional<IaBadge k="notasOperacional" /></span>
             <textarea
               className="form-input"
               rows={3}
               placeholder="Preferências do cliente, sensibilidades, ponto focal. Ex: prefere WhatsApp a email; filho dele é o decisor real."
               value={notasOperacional}
-              onChange={e => setNotasOp(e.target.value)}
+              onChange={e => { setNotasOp(e.target.value); markEdited('notasOperacional'); }}
               style={{ ...inputStyle, resize: 'vertical', minHeight: 60, fontFamily: 'inherit' }}
             />
           </label>
 
           {/* ── Notas jurídico ───────────────────────── */}
           <label style={{ display: 'block', marginBottom: blockGap }}>
-            <span style={labelStyle}>Notas pro jurídico</span>
+            <span style={labelStyle}>Notas pro jurídico<IaBadge k="notasJuridico" /></span>
             <textarea
               className="form-input"
               rows={3}
               placeholder="Cláusulas especiais, multas, exclusividade, condições atípicas a colocar no contrato."
               value={notasJuridico}
-              onChange={e => setNotasJur(e.target.value)}
+              onChange={e => { setNotasJur(e.target.value); markEdited('notasJuridico'); }}
               style={{ ...inputStyle, resize: 'vertical', minHeight: 60, fontFamily: 'inherit' }}
             />
           </label>
 
           {/* ── Notas livres ─────────────────────────── */}
           <label style={{ display: 'block' }}>
-            <span style={labelStyle}>Notas livres</span>
+            <span style={labelStyle}>Notas livres<IaBadge k="notasLivres" /></span>
             <textarea
               className="form-input"
               rows={2}
               placeholder="Qualquer coisa que não couber nos campos acima."
               value={notasLivres}
-              onChange={e => setNotasLivres(e.target.value)}
+              onChange={e => { setNotasLivres(e.target.value); markEdited('notasLivres'); }}
               style={{ ...inputStyle, resize: 'vertical', minHeight: 48, fontFamily: 'inherit' }}
             />
           </label>

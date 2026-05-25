@@ -1,4 +1,5 @@
 import { supabase } from './supabase';
+import type { FormaPagamento } from '../types';
 
 export type AgentRole = 'user' | 'assistant' | 'tool';
 
@@ -41,4 +42,30 @@ export async function callAgent(req: AgentTurnRequest): Promise<AgentTurnRespons
   if (error) throw new Error(`agent edge function: ${error.message}`);
   if (!data) throw new Error('agent edge function: empty response');
   return data;
+}
+
+/* ============================================================
+   Fase B — Auto-preenchimento da Ficha por transcrição Read AI
+   ============================================================ */
+export interface ExtractedFicha {
+  cliente?: string | null;
+  valor?: number | null;
+  tipo?: 'tcv' | 'mrr' | null;
+  formaPagamento?: FormaPagamento | null;
+  parcelas?: number | null;
+  vigenciaInicio?: string | null;
+  vigenciaMeses?: number | null;
+  entregaveis?: string | null;
+  notasOperacional?: string | null;
+  notasJuridico?: string | null;
+  notasLivres?: string | null;
+}
+
+export interface ExtractFichaResponse { extracted: ExtractedFicha; }
+
+export async function callExtractFicha(transcript: string): Promise<ExtractedFicha> {
+  const { data, error } = await supabase.functions.invoke<ExtractFichaResponse>('extract-ficha', { body: { transcript } });
+  if (error) throw new Error(`extract-ficha: ${error.message}`);
+  if (!data) throw new Error('extract-ficha: empty response');
+  return data.extracted ?? {};
 }
