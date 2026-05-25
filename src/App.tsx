@@ -11,6 +11,7 @@ import ScriptsPanel from './components/panels/ScriptsPanel';
 import OperacaoDashPanel from './components/panels/OperacaoDashPanel';
 import MapaMentalPanel from './components/panels/MapaMentalPanel';
 import AgentePanel from './components/panels/AgentePanel';
+import AgenteFab from './components/AgenteFab';
 import AuthScreen from './components/AuthScreen';
 import { useAuth } from './context/AuthContext';
 import { useAppContext } from './context/AppContext';
@@ -74,6 +75,7 @@ function MainApp() {
           <AgentePanel />
         </div>
       </main>
+      {activeTab !== 'agente' && <AgenteFab />}
     </div>
   );
 }
