@@ -1,6 +1,8 @@
 import { useEffect, useRef, useState } from 'react';
+import ReactMarkdown from 'react-markdown';
 import { useAgenteChat } from '../hooks/useAgenteChat';
 import { useSpeechRecognition } from '../hooks/useSpeechRecognition';
+import AgenteLogo from './AgenteLogo';
 import type { AgentMessage, PendingAction } from '../lib/agent';
 
 export default function AgenteFab() {
@@ -19,14 +21,16 @@ export default function AgenteFab() {
           width: 54, height: 54, borderRadius: '50%',
           background: 'var(--silver-grad)', color: '#0a0a0c',
           border: 'none', cursor: 'pointer',
-          fontSize: 22, fontWeight: 800, fontFamily: 'inherit',
+          fontFamily: 'inherit',
           display: open ? 'none' : 'grid', placeItems: 'center',
           boxShadow: '0 8px 28px rgba(0,0,0,.55), 0 0 0 1px rgba(255,255,255,.06)',
           zIndex: 95, transition: 'transform .15s ease',
         }}
         onMouseEnter={e => (e.currentTarget.style.transform = 'scale(1.06)')}
         onMouseLeave={e => (e.currentTarget.style.transform = 'scale(1)')}
-      >★</button>
+      >
+        <AgenteLogo size={26} color="#0a0a0c" />
+      </button>
 
       {open && <AgenteDrawer onClose={() => setOpen(false)} />}
     </>
@@ -95,8 +99,10 @@ function AgenteDrawer({ onClose }: { onClose: () => void }) {
           <div style={{
             width: 32, height: 32, borderRadius: 10,
             background: 'var(--silver-grad)', color: '#0a0a0c',
-            display: 'grid', placeItems: 'center', fontWeight: 800, fontSize: 14,
-          }}>★</div>
+            display: 'grid', placeItems: 'center',
+          }}>
+            <AgenteLogo size={18} color="#0a0a0c" />
+          </div>
           <div style={{ flex: 1 }}>
             <div style={{ fontSize: 14, fontWeight: 700, color: 'var(--txt-0)', lineHeight: 1.2 }}>Agente</div>
             <div style={{ fontSize: 10.5, color: 'var(--txt-3)' }}>Texto ou voz</div>
@@ -187,16 +193,31 @@ function AgenteDrawer({ onClose }: { onClose: () => void }) {
 function BubbleMini({ msg, onConfirm }: { msg: AgentMessage; onConfirm: (msgId: string, a: PendingAction, ok: boolean) => void }) {
   const isUser = msg.role === 'user';
   return (
-    <div style={{ alignSelf: isUser ? 'flex-end' : 'flex-start', maxWidth: '88%' }}>
+    <div style={{ alignSelf: isUser ? 'flex-end' : 'flex-start', maxWidth: '92%' }}>
       <div style={{
         padding: '8px 11px', borderRadius: 11,
         background: isUser ? 'var(--silver-grad)' : 'var(--bg-2)',
         color: isUser ? '#0a0a0c' : 'var(--txt-0)',
-        fontSize: 12.5, lineHeight: 1.45,
+        fontSize: 12.5, lineHeight: 1.5,
         border: isUser ? 'none' : '1px solid var(--border)',
-        whiteSpace: 'pre-wrap',
       }}>
-        {msg.content}
+        {isUser ? (
+          <div style={{ whiteSpace: 'pre-wrap' }}>{msg.content}</div>
+        ) : (
+          <div className="md-body-mini">
+            <style>{`
+              .md-body-mini > *:first-child { margin-top: 0 }
+              .md-body-mini > *:last-child { margin-bottom: 0 }
+              .md-body-mini p { margin: 0 0 6px 0 }
+              .md-body-mini strong { color: var(--txt-0); font-weight: 700 }
+              .md-body-mini em { color: var(--txt-2) }
+              .md-body-mini ul, .md-body-mini ol { margin: 4px 0 6px 0; padding-left: 16px }
+              .md-body-mini li { margin: 2px 0 }
+              .md-body-mini code { background: rgba(255,255,255,.07); padding: 1px 4px; border-radius: 3px; font-size: 11.5px }
+            `}</style>
+            <ReactMarkdown>{msg.content}</ReactMarkdown>
+          </div>
+        )}
       </div>
       {msg.pendingAction && (
         <ConfirmCardMini action={msg.pendingAction} onChoose={(ok) => onConfirm(msg.id, msg.pendingAction!, ok)} />
@@ -206,8 +227,6 @@ function BubbleMini({ msg, onConfirm }: { msg: AgentMessage; onConfirm: (msgId: 
 }
 
 function ConfirmCardMini({ action, onChoose }: { action: PendingAction; onChoose: (ok: boolean) => void }) {
-  const a = action.args;
-  const fpLabel = { cartao: 'Cartão', avista: 'À vista', mensalidade: 'Mensalidade', parcelado: 'Parcelado' }[a.formaPagamento];
   return (
     <div style={{
       marginTop: 6, padding: 10, borderRadius: 10,
@@ -217,8 +236,22 @@ function ConfirmCardMini({ action, onChoose }: { action: PendingAction; onChoose
         Confirma?
       </div>
       <div style={{ fontSize: 11.5, color: 'var(--txt-1)', lineHeight: 1.45 }}>
-        <strong style={{ color: 'var(--txt-0)' }}>{a.cliente}</strong> · {a.produto_nome}<br />
-        R$ {a.valor.toLocaleString('pt-BR')} ({a.tipo.toUpperCase()}) · {fpLabel}{a.parcelas ? ` ${a.parcelas}x` : ''}
+        {action.kind === 'registrar_contrato' ? (
+          <>
+            <strong style={{ color: 'var(--txt-0)' }}>{action.args.cliente}</strong> · {action.args.produto_nome}<br />
+            R$ {action.args.valor.toLocaleString('pt-BR')} ({action.args.tipo.toUpperCase()}) · {({ cartao: 'Cartão', avista: 'À vista', mensalidade: 'Mensalidade', parcelado: 'Parcelado' })[action.args.formaPagamento]}{action.args.parcelas ? ` ${action.args.parcelas}x` : ''}
+          </>
+        ) : (
+          <>
+            <strong style={{ color: 'var(--txt-0)' }}>Lançamento {action.args.data}</strong><br />
+            {[
+              action.args.ligacoes != null ? `${action.args.ligacoes} ligações` : null,
+              action.args.reunioes_agendadas != null ? `${action.args.reunioes_agendadas} reun. agend.` : null,
+              action.args.reunioes_realizadas != null ? `${action.args.reunioes_realizadas} reun. real.` : null,
+              action.args.propostas != null ? `${action.args.propostas} propostas` : null,
+            ].filter(Boolean).join(' · ')}
+          </>
+        )}
       </div>
       <div style={{ display: 'flex', gap: 6, marginTop: 8 }}>
         <button type="button" onClick={() => onChoose(false)} style={{

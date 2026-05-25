@@ -25,11 +25,22 @@ export type PendingAction =
         mes: number;
         meses?: number | null;
       };
+    }
+  | {
+      kind: 'registrar_lancamento_diario';
+      args: {
+        data: string;
+        ligacoes: number | null;
+        reunioes_agendadas: number | null;
+        reunioes_realizadas: number | null;
+        propostas: number | null;
+      };
     };
 
 export interface AgentTurnRequest {
   message: string;
   history: { role: AgentRole; content: string }[];
+  dashboard_context?: string;
 }
 
 export interface AgentTurnResponse {
