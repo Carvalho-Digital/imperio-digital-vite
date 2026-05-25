@@ -62,6 +62,10 @@ export function useSpeechRecognition(lang = 'pt-BR'): UseSpeechRecognitionReturn
   const recRef = useRef<SpeechRecognitionInstance | null>(null);
   // Pra debug: timestamp do start, pra ver se onend dispara imediatamente
   const startTsRef = useRef<number>(0);
+  // Flag pra controlar auto-reinicio: TRUE = usuário quer continuar gravando.
+  // Quando o navegador encerra a sessão sozinho (pausa natural na fala), reinicia automaticamente.
+  // Só vira FALSE quando o usuário clica em "parar" manualmente.
+  const wantsListeningRef = useRef<boolean>(false);
 
   useEffect(() => {
     const Ctor = getRecognitionCtor();
@@ -72,10 +76,8 @@ export function useSpeechRecognition(lang = 'pt-BR'): UseSpeechRecognitionReturn
     }
     const rec = new Ctor();
     rec.lang = lang;
-    // continuous: false costuma ser mais estável em Edge/Mac.
-    // Se quiser sessões longas, mude pra true (mais sujeito a bug em Edge).
-    rec.continuous = false;
-    rec.interimResults = true;
+    rec.continuous = true;       // captura sessão longa
+    rec.interimResults = true;   // mostra resultados parciais enquanto fala
 
     rec.onresult = (ev) => {
       let finalText = '';
@@ -96,7 +98,6 @@ export function useSpeechRecognition(lang = 'pt-BR'): UseSpeechRecognitionReturn
     rec.onerror = (ev) => {
       const err = ev.error;
       console.error(`${LOG_PREFIX} erro:`, err);
-      // Mensagens humanas pros erros mais comuns
       const msg: Record<string, string> = {
         'not-allowed': 'Permissão de microfone negada. Libere nas configurações do navegador.',
         'service-not-allowed': 'Serviço de reconhecimento de voz não permitido.',
@@ -106,39 +107,66 @@ export function useSpeechRecognition(lang = 'pt-BR'): UseSpeechRecognitionReturn
         'aborted': 'Gravação interrompida.',
         'language-not-supported': `Idioma ${lang} não suportado neste navegador. Tente em outro navegador (Chrome funciona melhor).`,
       };
-      setErrorMessage(msg[err] ?? `Erro: ${err}`);
-      if (err === 'not-allowed' || err === 'service-not-allowed') setState('denied');
-      else setState('error');
+      // Erros que devem PARAR de vez (não tentar reiniciar)
+      const fatal = ['not-allowed', 'service-not-allowed', 'audio-capture', 'language-not-supported'];
+      if (fatal.includes(err)) {
+        wantsListeningRef.current = false;
+        setErrorMessage(msg[err] ?? `Erro: ${err}`);
+        if (err === 'not-allowed' || err === 'service-not-allowed') setState('denied');
+        else setState('error');
+      } else if (err === 'no-speech' || err === 'aborted') {
+        // Erros leves — não mostra mensagem, deixa o onend tratar (auto-restart se for o caso)
+        console.log(`${LOG_PREFIX} erro leve ignorado: ${err} (deixando onend reiniciar se ainda estiver listening)`);
+      } else {
+        setErrorMessage(msg[err] ?? `Erro: ${err}`);
+        wantsListeningRef.current = false;
+        setState('error');
+      }
     };
 
     rec.onend = () => {
       const dur = Date.now() - startTsRef.current;
-      console.log(`${LOG_PREFIX} onend após ${dur}ms`);
-      // Se rolou em menos de 500ms sem áudio capturado, provável bug Edge/Mac
-      if (dur > 0 && dur < 500) {
-        console.warn(`${LOG_PREFIX} onend muito rápido (${dur}ms) — possível bug Edge/Mac. Web Speech API encerrou sem capturar.`);
+      console.log(`${LOG_PREFIX} onend após ${dur}ms (wantsListening=${wantsListeningRef.current})`);
+
+      // AUTO-REINÍCIO: se o usuário ainda quer gravar mas o navegador parou sozinho
+      // (pausa natural na fala, timeout interno do Chrome, etc), reinicia.
+      if (wantsListeningRef.current) {
+        try {
+          startTsRef.current = Date.now();
+          rec.start();
+          console.log(`${LOG_PREFIX} auto-reiniciado`);
+          return;
+        } catch (e) {
+          console.warn(`${LOG_PREFIX} falha no auto-restart:`, e);
+        }
       }
+
       setState(s => (s === 'listening' ? 'idle' : s));
     };
 
     recRef.current = rec;
-    return () => { try { rec.abort(); } catch { /* noop */ } };
+    return () => {
+      wantsListeningRef.current = false;
+      try { rec.abort(); } catch { /* noop */ }
+    };
   }, [lang]);
 
   const start = useCallback(() => {
     const rec = recRef.current;
     if (!rec || state === 'unsupported') return;
-    console.log(`${LOG_PREFIX} start (lang=${lang})`);
+    console.log(`${LOG_PREFIX} start manual (lang=${lang})`);
     setTranscript('');
     setInterim('');
     setErrorMessage(null);
     startTsRef.current = Date.now();
+    wantsListeningRef.current = true;
     try {
       rec.start();
       setState('listening');
     } catch (e) {
       console.error(`${LOG_PREFIX} falha ao iniciar:`, e);
       setErrorMessage('Não consegui iniciar a gravação. Tente recarregar a página.');
+      wantsListeningRef.current = false;
     }
   }, [state, lang]);
 
@@ -146,6 +174,7 @@ export function useSpeechRecognition(lang = 'pt-BR'): UseSpeechRecognitionReturn
     const rec = recRef.current;
     if (!rec) return;
     console.log(`${LOG_PREFIX} stop chamado pelo usuário`);
+    wantsListeningRef.current = false; // ← impede auto-restart
     try { rec.stop(); } catch { /* noop */ }
     setState('idle');
   }, []);
