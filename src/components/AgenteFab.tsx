@@ -3,6 +3,7 @@ import ReactMarkdown from 'react-markdown';
 import { useAgenteChat } from '../hooks/useAgenteChat';
 import { useSpeechRecognition } from '../hooks/useSpeechRecognition';
 import AgenteLogo from './AgenteLogo';
+import { MicIcon, StopIcon } from './icons/MicIcon';
 import type { AgentMessage, PendingAction } from '../lib/agent';
 
 export default function AgenteFab() {
@@ -156,10 +157,10 @@ function AgenteDrawer({ onClose }: { onClose: () => void }) {
               background: micOn ? '#ef4444' : 'var(--bg-1)',
               color: micOn ? '#fff' : 'var(--txt-1)',
               cursor: micUnsupported ? 'not-allowed' : 'pointer',
-              opacity: micUnsupported ? 0.4 : 1, fontSize: 14,
+              opacity: micUnsupported ? 0.4 : 1,
               display: 'grid', placeItems: 'center', fontFamily: 'inherit',
             }}
-          >{micOn ? '■' : '🎤'}</button>
+          >{micOn ? <StopIcon size={12} /> : <MicIcon size={16} />}</button>
           <input
             type="text"
             value={draft + (micOn && speech.interim ? ' ' + speech.interim : '')}

@@ -4,6 +4,7 @@ import { useSpeechRecognition } from '../../hooks/useSpeechRecognition';
 import { useAgenteChat } from '../../hooks/useAgenteChat';
 import { useAuth } from '../../context/AuthContext';
 import AgenteLogo from '../AgenteLogo';
+import { MicIcon, StopIcon } from '../icons/MicIcon';
 import type { AgentMessage, PendingAction } from '../../lib/agent';
 
 function greetingByHour() {
@@ -176,7 +177,7 @@ export default function AgentePanel() {
             onClick={() => micOn ? speech.stop() : speech.start()}
             disabled={micUnsupported || sending}
             active={micOn}
-          >{micOn ? '■' : '🎤'}</ToolbarButton>
+          >{micOn ? <StopIcon size={13} /> : <MicIcon size={18} />}</ToolbarButton>
         </div>
       </div>
 
