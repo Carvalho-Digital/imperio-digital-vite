@@ -141,10 +141,21 @@ export default function AgentePanel() {
         </div>
       )}
 
-      {/* Erro */}
+      {/* Erro do agente */}
       {error && (
         <div style={{ fontSize: 11.5, color: '#f87171', marginBottom: 8, position: 'relative', zIndex: 1 }}>
           ⚠ {error}
+        </div>
+      )}
+      {/* Erro de voz */}
+      {speech.errorMessage && (
+        <div style={{
+          fontSize: 11.5, color: '#fbbf24', marginBottom: 8,
+          position: 'relative', zIndex: 1,
+          background: 'rgba(251,191,36,.08)', padding: '6px 10px',
+          borderRadius: 8, border: '1px solid rgba(251,191,36,.25)',
+        }}>
+          🎤 {speech.errorMessage}
         </div>
       )}
 

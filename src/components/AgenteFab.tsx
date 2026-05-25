@@ -135,9 +135,13 @@ function AgenteDrawer({ onClose }: { onClose: () => void }) {
           )}
         </div>
 
-        {/* Erro */}
+        {/* Erro do agente */}
         {error && (
           <div style={{ fontSize: 11, color: '#f87171', padding: '6px 12px' }}>⚠ {error}</div>
+        )}
+        {/* Erro de voz */}
+        {speech.errorMessage && (
+          <div style={{ fontSize: 11, color: '#fbbf24', padding: '6px 12px' }}>🎤 {speech.errorMessage}</div>
         )}
 
         {/* Composer */}
