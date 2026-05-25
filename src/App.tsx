@@ -15,6 +15,7 @@ import BaseConhecimentoPanel from './components/panels/BaseConhecimentoPanel';
 import ContratosPanel from './components/panels/ContratosPanel';
 import AgenteFab from './components/AgenteFab';
 import AuthScreen from './components/AuthScreen';
+import FichaPublica from './components/FichaPublica';
 import { useAuth } from './context/AuthContext';
 import { useAppContext } from './context/AppContext';
 
@@ -88,9 +89,19 @@ function MainApp() {
   );
 }
 
-export default function App() {
-  const { session, isLoading } = useAuth();
+/* Detecta rota pública /ficha/:token — não exige login. */
+function tryExtractPublicFichaToken(): string | null {
+  if (typeof window === 'undefined') return null;
+  const m = window.location.pathname.match(/^\/ficha\/([A-Za-z0-9]+)\/?$/);
+  return m ? m[1] : null;
+}
 
+export default function App() {
+  // Rota pública tem precedência absoluta (sem auth, sem carregar AppContext)
+  const publicToken = tryExtractPublicFichaToken();
+  if (publicToken) return <FichaPublica token={publicToken} />;
+
+  const { session, isLoading } = useAuth();
   if (isLoading) return <LoadingScreen />;
   if (!session) return <AuthScreen />;
 

@@ -13,3 +13,7 @@ export const supabase = createClient(
   supabaseUrl ?? 'http://localhost',
   supabaseAnonKey ?? 'missing-key',
 );
+
+export const SUPABASE_URL = supabaseUrl;
+export const SUPABASE_ANON_KEY = supabaseAnonKey;
+export const FUNCTIONS_URL = supabaseUrl ? `${supabaseUrl}/functions/v1` : '';

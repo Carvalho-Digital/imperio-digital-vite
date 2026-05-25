@@ -3,6 +3,7 @@ import { useAppContext } from '../../context/AppContext';
 import { useModal } from '../../context/ModalContext';
 import { getContratos } from '../../lib/calculations';
 import { fmtBRLCompleto } from '../../lib/formatters';
+import ShareDialog from '../ShareDialog';
 import type { Contrato, ProdutoState } from '../../types';
 
 type StatusFicha = 'completa' | 'incompleta' | 'sem';
@@ -42,12 +43,13 @@ const STATUS_META: Record<StatusFicha, { label: string; icon: string; color: str
 
 export default function ContratosPanel() {
   const { state, dispatch } = useAppContext();
-  const { showDetalharContrato, showConfirm, showAlert } = useModal();
+  const { showDetalharContrato, showConfirm } = useModal();
 
   const [filtroMes, setFiltroMes] = useState<number | 'all'>('all');
   const [filtroStatus, setFiltroStatus] = useState<StatusFicha | 'all'>('all');
   const [filtroProduto, setFiltroProduto] = useState<string | 'all'>('all');
   const [busca, setBusca] = useState('');
+  const [shareRow, setShareRow] = useState<ContratoRow | null>(null);
 
   // Constrói o array flat de todos os contratos do workspace
   const rows: ContratoRow[] = useMemo(() => {
@@ -106,14 +108,7 @@ export default function ContratosPanel() {
     dispatch({ type: 'UPDATE_CONTRATO_FICHA', idx: row.idx, pid: row.pid, ci: row.ci, ficha });
   };
 
-  const copiarLink = async (_row: ContratoRow) => {
-    // Sessão 4 vai gerar token real. Por enquanto, avisa que ainda não está pronto.
-    await showAlert({
-      title: 'Link público em construção',
-      message: 'A geração de link público compartilhável estará disponível na próxima atualização (Sessão 4 da feature Ficha). Por enquanto, você pode editar a ficha clicando no contrato e compartilhar manualmente.',
-      kind: 'info',
-    });
-  };
+  const compartilhar = (row: ContratoRow) => setShareRow(row);
 
   const removerContrato = async (row: ContratoRow) => {
     const ok = await showConfirm({
@@ -203,6 +198,15 @@ export default function ContratosPanel() {
         </select>
       </div>
 
+      {/* Dialog de compartilhamento */}
+      {shareRow && (
+        <ShareDialog
+          contrato={shareRow.contrato}
+          contratoLabel={`${shareRow.contrato.cliente ?? 'Sem cliente'} · ${shareRow.produto.icon} ${shareRow.produto.nome}`}
+          onClose={() => setShareRow(null)}
+        />
+      )}
+
       {/* Lista */}
       {filteredRows.length === 0 ? (
         <EmptyState hasContracts={rows.length > 0} />
@@ -213,7 +217,7 @@ export default function ContratosPanel() {
               key={`${row.idx}-${row.pid}-${row.ci}`}
               row={row}
               onEdit={() => editarFicha(row)}
-              onCopyLink={() => copiarLink(row)}
+              onCopyLink={() => compartilhar(row)}
               onRemove={() => removerContrato(row)}
             />
           ))}
