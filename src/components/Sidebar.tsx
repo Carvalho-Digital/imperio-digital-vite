@@ -16,10 +16,11 @@ const NAV_VISAO_GERAL: NavItem[] = [
 ];
 
 const NAV_OPERACAO: NavItem[] = [
-  { id: 'operacao', icon: '▤', label: 'Dashboard Operacional' },
-  { id: 'time',     icon: '◉', label: 'Time de Vendas' },
-  { id: 'funis',    icon: '⫶', label: 'Funis de Aquisição' },
-  { id: 'rotina',   icon: '✓', label: 'Rotina & Alertas' },
+  { id: 'operacao',  icon: '▤', label: 'Dashboard Operacional' },
+  { id: 'contratos', icon: '▣', label: 'Contratos' },
+  { id: 'time',      icon: '◉', label: 'Time de Vendas' },
+  { id: 'funis',     icon: '⫶', label: 'Funis de Aquisição' },
+  { id: 'rotina',    icon: '✓', label: 'Rotina & Alertas' },
 ];
 
 const NAV_EQUIPE: NavItem[] = [

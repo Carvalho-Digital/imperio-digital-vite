@@ -75,6 +75,7 @@ export type Action =
   | { type: 'FINALIZAR_MES'; idx: number; mrrAtivo: number }
   | { type: 'ADD_CONTRATO'; idx: number; pid: string; contrato: Contrato }
   | { type: 'REMOVE_CONTRATO'; idx: number; pid: string; ci: number }
+  | { type: 'UPDATE_CONTRATO_FICHA'; idx: number; pid: string; ci: number; ficha: import('../types').ContratoFicha }
   | { type: 'SET_META_MENSAL'; idx: number; pid: string; tipo: 'tcv' | 'mrr'; valor: number }
   | { type: 'RESET_META_MENSAL'; idx: number; pid: string; tipo: 'tcv' | 'mrr' }
   | { type: 'ADD_AVULSO'; idx: number }
@@ -191,6 +192,17 @@ function reducer(state: FullState, action: Action): FullState {
       const dados = garantirBreakdownV2(mes);
       dados.novos[action.pid]?.splice(action.ci, 1);
       mes.receitaRealizada = getReceitaTotalMes(mes);
+      s.meses[action.idx] = mes;
+      return s;
+    }
+
+    case 'UPDATE_CONTRATO_FICHA': {
+      const mes = deepClone(s.meses[action.idx]);
+      const dados = garantirBreakdownV2(mes);
+      const lista = dados.novos[action.pid];
+      if (lista && lista[action.ci]) {
+        lista[action.ci] = { ...lista[action.ci], ficha: action.ficha };
+      }
       s.meses[action.idx] = mes;
       return s;
     }
