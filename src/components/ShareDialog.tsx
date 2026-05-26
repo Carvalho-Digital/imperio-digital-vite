@@ -15,6 +15,13 @@ interface Props {
 
 export default function ShareDialog({ contrato, contratoLabel, onClose }: Props) {
   const contractId = contrato.id;
+  // DEBUG: quando o id está faltando, logar contrato inteiro pra diagnóstico
+  if (!contractId) {
+    console.warn('[ShareDialog] contrato SEM id — objeto completo:', contrato);
+    console.warn('[ShareDialog] tipo do id:', typeof contrato.id, '| valor:', JSON.stringify(contrato.id));
+  } else {
+    console.log('[ShareDialog] contrato com id:', contractId);
+  }
   const [tokens, setTokens] = useState<ShareToken[] | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
