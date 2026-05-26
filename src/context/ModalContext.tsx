@@ -318,6 +318,7 @@ function ModalChoice({
 import { useState as useStateLocal } from 'react';
 import { COMBO_COMPONENTES } from '../lib/constants';
 import { fmtBRLCompleto } from '../lib/formatters';
+import { uuid } from '../lib/uuid';
 
 function ModalAddContrato({
   opts, onResolve,
@@ -364,6 +365,7 @@ function ModalAddContrato({
     if (!formaPagamento) return;
     const nParcelas = exigeParcelas ? Math.max(1, parseInt(parcelas) || 1) : null;
     onResolve({
+      id: uuid(),                       // ← UUID estável gerado no client
       valor: v,
       tipo,
       meses: tipo === 'mrr' ? mesesContrato : null,

@@ -4,6 +4,7 @@ import { useAppContext } from '../context/AppContext';
 import { useAuth } from '../context/AuthContext';
 import { getContratos } from '../lib/calculations';
 import { listKnowledge, buildKnowledgeContext } from '../lib/agentKnowledge';
+import { uuid } from '../lib/uuid';
 import type { KnowledgeEntry } from '../types';
 
 function uid() { return Math.random().toString(36).slice(2, 10); }
@@ -123,6 +124,7 @@ export function useAgenteChat(opts: Options = {}) {
         dispatch({
           type: 'ADD_CONTRATO', idx, pid: action.args.produto_code,
           contrato: {
+            id: uuid(),                       // UUID estável gerado no client
             valor: action.args.valor,
             tipo: action.args.tipo,
             meses: action.args.tipo === 'mrr' ? (action.args.meses ?? 6) : null,

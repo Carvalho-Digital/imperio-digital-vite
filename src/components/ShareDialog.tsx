@@ -101,11 +101,16 @@ export default function ShareDialog({ contrato, contratoLabel, onClose }: Props)
             <div style={{
               padding: 14, borderRadius: 10, marginBottom: 16,
               background: 'rgba(251,191,36,.10)', border: '1px solid rgba(251,191,36,.3)',
-              color: '#fbbf24', fontSize: 12.5, lineHeight: 1.5,
+              color: '#fbbf24', fontSize: 12.5, lineHeight: 1.55,
             }}>
-              ⏳ Este contrato ainda está sincronizando no servidor (auto-save em andamento). Aguarde
-              alguns segundos e clique no botão 🔗 de novo. Se persistir, abra qualquer outro mês
-              do Plano Anual e volte — força a sincronização.
+              <strong>Recarregue a página pra sincronizar este contrato.</strong>
+              <br />
+              <span style={{ color: 'var(--txt-2)' }}>
+                Este contrato foi criado antes da atualização e ainda não tem identificador
+                no banco. Aperte <strong style={{ color: 'var(--txt-0)' }}>Cmd + R</strong> (ou F5)
+                pra recarregar — depois o link compartilhável vai funcionar normal.
+                Contratos novos criados daqui pra frente funcionam instantâneo.
+              </span>
             </div>
           )}
 

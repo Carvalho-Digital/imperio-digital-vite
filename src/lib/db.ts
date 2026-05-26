@@ -323,6 +323,7 @@ export async function saveMonthlyPlan(
     const productId = productCodeToId[code];
     if (!productId) return;
     contracts.forEach(c => newContracts.push({
+      ...(c.id ? { id: c.id } : {}),    // ← usa UUID do client se já tem (estável entre sessões)
       monthly_plan_id: planId, product_id: productId,
       contract_type: c.tipo, value: c.valor, months: c.meses, combo_components: c.comboItens,
       client_name: c.cliente ?? null,
