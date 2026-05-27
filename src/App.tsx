@@ -13,13 +13,14 @@ import MapaMentalPanel from './components/panels/MapaMentalPanel';
 import AgentePanel from './components/panels/AgentePanel';
 import BaseConhecimentoPanel from './components/panels/BaseConhecimentoPanel';
 import ContratosPanel from './components/panels/ContratosPanel';
+import ProcessosPanel from './components/panels/ProcessosPanel';
 import AgenteFab from './components/AgenteFab';
 import AuthScreen from './components/AuthScreen';
 import FichaPublica from './components/FichaPublica';
 import { useAuth } from './context/AuthContext';
 import { useAppContext } from './context/AppContext';
 
-export type TabId = 'dashboard' | 'plano' | 'produtos' | 'time' | 'funis' | 'rotina' | 'colaboradores' | 'scripts' | 'operacao' | 'mapa-mental' | 'agente' | 'base-agente' | 'contratos';
+export type TabId = 'dashboard' | 'plano' | 'produtos' | 'time' | 'funis' | 'rotina' | 'colaboradores' | 'scripts' | 'operacao' | 'mapa-mental' | 'agente' | 'base-agente' | 'contratos' | 'processos';
 
 function LoadingScreen() {
   return (
@@ -82,6 +83,9 @@ function MainApp() {
         </div>
         <div className={`tab-panel${activeTab === 'contratos' ? ' active' : ''}`} id="panel-contratos">
           <ContratosPanel />
+        </div>
+        <div className={`tab-panel${activeTab === 'processos' ? ' active' : ''}`} id="panel-processos">
+          <ProcessosPanel />
         </div>
       </main>
       {activeTab !== 'agente' && <AgenteFab />}

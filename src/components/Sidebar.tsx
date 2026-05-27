@@ -27,6 +27,10 @@ const NAV_EQUIPE: NavItem[] = [
   { id: 'colaboradores', icon: '◈', label: 'Colaboradores' },
 ];
 
+const NAV_DOCUMENTACAO: NavItem[] = [
+  { id: 'processos',      icon: '◰', label: 'Processos' },
+];
+
 const NAV_INTELIGENCIA: NavItem[] = [
   { id: 'agente',         icon: '⬢', label: 'Agente' },
   { id: 'base-agente',    icon: '◈', label: 'Base do Agente' },
@@ -108,6 +112,19 @@ export default function Sidebar({ activeTab, onTabChange }: Props) {
               {item.id === 'colaboradores' && sellerCount > 0 && (
                 <span className="nav-badge">{sellerCount}</span>
               )}
+            </button>
+          ))}
+        </div>
+        <div className="nav-section">
+          <div className="nav-section-title">Documentação</div>
+          {NAV_DOCUMENTACAO.map(item => (
+            <button
+              key={item.id}
+              className={`nav-item${activeTab === item.id ? ' active' : ''}`}
+              onClick={() => handleTabClick(item.id)}
+            >
+              <span className="nav-icon">{item.icon}</span>
+              {item.label}
             </button>
           ))}
         </div>

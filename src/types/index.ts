@@ -30,6 +30,47 @@ export interface Contrato {
   ficha?: ContratoFicha;
 }
 
+/* ── Processos (documentação operacional: onboarding, playbook, etc.) ── */
+export type ProcessoStatus = 'rascunho' | 'aguardando' | 'publicado' | 'revisao';
+
+export type SecaoTipo = 'texto' | 'checklist';
+
+export interface SecaoChecklistItem {
+  id: string;
+  texto: string;
+  concluido: boolean;
+}
+
+export interface ProcessoSecao {
+  id: string;
+  tipo: SecaoTipo;
+  titulo: string;
+  conteudo?: string | null;            // tipo='texto'
+  responsavel?: string | null;         // exibido no rodapé da seção
+  itens?: SecaoChecklistItem[];        // tipo='checklist'
+}
+
+export interface Processo {
+  id: string;
+  workspaceId: string;
+  titulo: string;
+  descricao?: string | null;
+  status: ProcessoStatus;
+  pdfPath?: string | null;             // caminho dentro do bucket Storage
+  pdfLink?: string | null;             // URL externa (Drive/Notion)
+  estrutura: ProcessoSecao[];
+  ordem: number;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export const PROCESSO_STATUS_META: Record<ProcessoStatus, { label: string; color: string }> = {
+  rascunho:   { label: 'Rascunho',           color: '#94a3b8' },
+  aguardando: { label: 'Aguardando upload',  color: '#fbbf24' },
+  publicado:  { label: 'Publicado',          color: '#34d399' },
+  revisao:    { label: 'Em revisão',         color: '#60a5fa' },
+};
+
 /* Base de Conhecimento do Agente IA */
 export type KnowledgeCategory = 'script' | 'playbook' | 'objecao' | 'faq' | 'regra' | 'outros';
 
