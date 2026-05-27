@@ -20,6 +20,9 @@ export function normContrato(
     };
   }
   return {
+    // preserva todos os campos "novos" — id, cliente, pagamento, ficha — pra que
+    // o ShareDialog/Ficha consigam encontrar o contrato pelo id e renderizar os dados
+    ...c,
     valor: parseFloat(String(c.valor)) || 0,
     tipo: c.tipo || defaultTipo,
     meses: c.meses != null ? c.meses : (c.tipo === 'mrr' ? defaultMeses : null),
