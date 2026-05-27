@@ -1,5 +1,6 @@
 import { useState, useMemo } from 'react';
 import { useAppContext } from '../../context/AppContext';
+import { fmtBRL } from '../../lib/formatters';
 import type { Vendedor, Tarefa, Compromisso, EstudoDia } from '../../types';
 
 /* ── localStorage helpers ─────────────────────────────────── */
@@ -182,110 +183,260 @@ export default function OperacaoDashPanel() {
         </button>
       </div>
 
-      {/* ═══════════════════ VISÃO GERAL ═══════════════════ */}
+      {/* ═══════════════════ VISÃO GERAL — repaginada ═══════════════════ */}
       {activeTab === 'geral' && (
-        <div className="op-geral">
+        <div style={{ padding: '4px 0 24px', display: 'flex', flexDirection: 'column', gap: 18 }}>
           {/* Filtros */}
-          <div className="op-filters">
-            <div className="op-filter-label">FILTROS</div>
-            <select className="op-select" value={selectedSDRId} onChange={e => setSelectedSDRId(e.target.value)}>
+          <div style={{
+            padding: '14px 18px', borderRadius: 16,
+            background: 'var(--bg-1)', border: '1px solid var(--border)',
+            display: 'flex', gap: 12, alignItems: 'center', flexWrap: 'wrap',
+          }}>
+            <div style={{ fontSize: 10, color: 'var(--txt-3)', letterSpacing: 1.2, fontWeight: 700 }}>FILTROS</div>
+            <select className="op-select" value={selectedSDRId} onChange={e => setSelectedSDRId(e.target.value)}
+              style={{ borderRadius: 10, padding: '8px 12px' }}>
               <option value="">Todos os SDRs</option>
               {vendedores.map(v => <option key={v.id} value={v.id}>{v.nome}</option>)}
             </select>
-            <select className="op-select" value={selectedMes} onChange={e => setSelectedMes(e.target.value)}>
+            <select className="op-select" value={selectedMes} onChange={e => setSelectedMes(e.target.value)}
+              style={{ borderRadius: 10, padding: '8px 12px' }}>
               {Array.from({ length: 12 }, (_, i) => {
                 const key = toYYYYMM(today.getFullYear(), i);
                 return <option key={key} value={key}>{MESES_CURTOS[i]} {today.getFullYear()}</option>;
               })}
             </select>
-            <div className="op-mes-display">{mesDisplay}</div>
+            <div style={{ marginLeft: 'auto', fontSize: 12, color: 'var(--txt-2)', fontWeight: 600 }}>
+              {mesDisplay}
+            </div>
           </div>
 
-          {/* KPI cards */}
-          <div className="op-kpi-grid">
-            {[
-              { label: 'LEADS QUALIFICADOS', val: aggMetrics.qualificados, sub: `de ${aggMetrics.leadsCaptados} captados`, pct: pct(aggMetrics.qualificados, aggMetrics.leadsCaptados), color: 'var(--green)' },
-              { label: 'LEADS DESQUALIFICADOS', val: aggMetrics.desqualificados, sub: 'do total captado', pct: pct(aggMetrics.desqualificados, aggMetrics.leadsCaptados), color: 'var(--red)' },
-              { label: 'REUNIÕES AGENDADAS', val: aggMetrics.agendados, sub: 'dos qualificados', pct: pct(aggMetrics.agendados, aggMetrics.qualificados), color: 'var(--blue)' },
-              { label: 'FOLLOW-UPS ENVIADOS', val: aggMetrics.followups, sub: 'cadência média', pct: aggMetrics.agendados ? (aggMetrics.followups / aggMetrics.agendados).toFixed(1) + 'x' : '—', color: 'var(--amber)' },
-              { label: 'RETORNOS DE FOLLOW-UP', val: aggMetrics.retornos, sub: 'taxa de resposta', pct: pct(aggMetrics.retornos, aggMetrics.followups), color: 'var(--silver-1)' },
-              { label: 'REUNIÕES REALIZADAS', val: aggMetrics.realizados, sub: 'conversão geral', pct: pct(aggMetrics.realizados, aggMetrics.leadsCaptados), color: 'var(--green)' },
-            ].map(k => (
-              <div key={k.label} className="op-kpi-card">
-                <div className="op-kpi-top-bar" style={{ background: k.color }} />
-                <div className="op-kpi-label">{k.label}</div>
-                <div className="op-kpi-val">{k.val}</div>
-                <div className="op-kpi-sub">
-                  <span>{k.sub}</span>
-                  <span className="op-kpi-pct">{k.pct}</span>
-                </div>
-              </div>
-            ))}
+          {/* HERO ROW — 4 cards grandes destacados */}
+          <div style={{
+            display: 'grid',
+            gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))',
+            gap: 14,
+          }}>
+            {/* Faturamento — azul hero */}
+            <HeroKpi
+              label="FATURAMENTO DO MÊS"
+              value={fmtBRL(aggMetrics.receita)}
+              sub={aggMetrics.contratos > 0 ? `${aggMetrics.contratos} contratos fechados` : 'nenhum contrato ainda'}
+              variant="primary"
+            />
+            {/* Contratos fechados — branco/silver */}
+            <HeroKpi
+              label="CONTRATOS FECHADOS"
+              value={aggMetrics.contratos.toString()}
+              sub={pct(aggMetrics.contratos, aggMetrics.realizados) + ' das reuniões realizadas'}
+              variant="silver"
+            />
+            {/* Reuniões realizadas — escuro com pct */}
+            <HeroKpi
+              label="REUNIÕES REALIZADAS"
+              value={aggMetrics.realizados.toString()}
+              sub={`de ${aggMetrics.agendados} agendadas · presença ${pct(aggMetrics.realizados, aggMetrics.agendados)}`}
+              variant="dark"
+            />
+            {/* Leads Qualificados — azul gradient */}
+            <HeroKpi
+              label="LEADS QUALIFICADOS"
+              value={aggMetrics.qualificados.toString()}
+              sub={`${pct(aggMetrics.qualificados, aggMetrics.leadsCaptados)} de ${aggMetrics.leadsCaptados} captados`}
+              variant="gradient"
+            />
+          </div>
+
+          {/* SECONDARY ROW — 3 KPIs menores estilo barra colorida */}
+          <div style={{
+            display: 'grid',
+            gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))',
+            gap: 14,
+          }}>
+            <MiniKpi
+              label="LEADS CAPTADOS"
+              value={aggMetrics.leadsCaptados}
+              sub="total do mês"
+              accent="var(--blue)"
+            />
+            <MiniKpi
+              label="REUNIÕES AGENDADAS"
+              value={aggMetrics.agendados}
+              sub={`${pct(aggMetrics.agendados, aggMetrics.qualificados)} dos qualificados`}
+              accent="var(--amber)"
+            />
+            <MiniKpi
+              label="LEADS DESQUALIFICADOS"
+              value={aggMetrics.desqualificados}
+              sub={`${pct(aggMetrics.desqualificados, aggMetrics.leadsCaptados)} do captado`}
+              accent="var(--red)"
+            />
           </div>
 
           {/* Funil + Ranking */}
-          <div className="op-bottom-row">
-            {/* Funil de Vendas */}
-            <div className="op-funil-box">
-              <div className="op-section-label">ESTRUTURA</div>
-              <div className="op-section-title">Funil de Vendas</div>
-              <div className="op-funil">
-                {funil.map((step, i) => (
-                  <div key={i} className={`op-funil-row${i === funil.length - 1 ? ' last' : ''}`}>
-                    <span className="op-funil-roman">{step.roman}</span>
-                    <span className="op-funil-label">{step.label}</span>
-                    <span className="op-funil-val">{step.valor}</span>
-                    {step.pctStr && <span className="op-funil-pct">{step.pctStr}</span>}
-                  </div>
-                ))}
+          <div style={{
+            display: 'grid',
+            gridTemplateColumns: '1.1fr 1fr',
+            gap: 14,
+          }}
+          className="op-dash-grid-2col">
+            {/* Funil */}
+            <div style={{
+              padding: 22, borderRadius: 18,
+              background: 'var(--bg-1)', border: '1px solid var(--border)',
+            }}>
+              <div style={{ fontSize: 10, color: 'var(--txt-3)', letterSpacing: 1.2, fontWeight: 700, marginBottom: 4 }}>ESTRUTURA</div>
+              <h3 style={{ margin: '0 0 16px', fontSize: 17, fontWeight: 700, color: 'var(--txt-0)' }}>Funil de Vendas</h3>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                {funil.map((step, i) => {
+                  const maxVal = funil[0].valor || 1;
+                  const width = Math.max(36, Math.round((step.valor / maxVal) * 100));
+                  return (
+                    <div key={i} style={{
+                      padding: '14px 18px', borderRadius: 12,
+                      background: 'linear-gradient(135deg, #3b82f6 0%, #2563eb 100%)',
+                      color: '#fff', width: `${width}%`, transition: 'width .3s',
+                      display: 'flex', alignItems: 'center', gap: 12,
+                      boxShadow: '0 4px 12px rgba(59,130,246,.18)',
+                    }}>
+                      <span style={{
+                        width: 26, height: 26, borderRadius: '50%',
+                        background: 'rgba(255,255,255,.22)', display: 'grid', placeItems: 'center',
+                        fontSize: 10, fontWeight: 800, flexShrink: 0,
+                      }}>{step.roman}</span>
+                      <span style={{ fontSize: 11.5, fontWeight: 700, letterSpacing: .5, flex: 1, minWidth: 0 }}>{step.label}</span>
+                      <span style={{ fontSize: 18, fontWeight: 800 }}>{step.valor}</span>
+                      {step.pctStr && (
+                        <span style={{
+                          fontSize: 10.5, fontWeight: 700, opacity: .85,
+                          padding: '2px 7px', borderRadius: 5, background: 'rgba(255,255,255,.16)',
+                        }}>{step.pctStr}</span>
+                      )}
+                    </div>
+                  );
+                })}
               </div>
             </div>
 
             {/* Ranking */}
-            <div className="op-ranking-box">
-              <div className="op-section-label">PERFORMANCE</div>
+            <div style={{
+              padding: 22, borderRadius: 18,
+              background: 'var(--bg-1)', border: '1px solid var(--border)',
+            }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 16 }}>
-                <div className="op-section-title" style={{ margin: 0 }}>Ranking de {rankTipo === 'sdr' ? 'SDRs' : 'Closers'}</div>
-                <div className="op-rank-drop" style={{ position: 'relative', marginLeft: 'auto' }}>
-                  <button className="op-select" style={{ cursor: 'pointer', padding: '6px 12px' }}
-                    onClick={() => setRankDropOpen(o => !o)}>
-                    {rankTipo === 'sdr' ? 'Ranking de SDRs' : 'Ranking de Closers'} ▾
+                <div>
+                  <div style={{ fontSize: 10, color: 'var(--txt-3)', letterSpacing: 1.2, fontWeight: 700, marginBottom: 4 }}>PERFORMANCE</div>
+                  <h3 style={{ margin: 0, fontSize: 17, fontWeight: 700, color: 'var(--txt-0)' }}>
+                    Ranking de {rankTipo === 'sdr' ? 'SDRs' : 'Closers'}
+                  </h3>
+                </div>
+                <div style={{ position: 'relative', marginLeft: 'auto' }}>
+                  <button onClick={() => setRankDropOpen(o => !o)}
+                    style={{
+                      padding: '6px 12px', borderRadius: 8,
+                      background: 'var(--bg-2)', border: '1px solid var(--border)',
+                      color: 'var(--txt-1)', cursor: 'pointer', fontFamily: 'inherit',
+                      fontSize: 12, fontWeight: 600,
+                    }}>
+                    {rankTipo === 'sdr' ? 'SDRs' : 'Closers'} ▾
                   </button>
                   {rankDropOpen && (
-                    <div className="op-drop-menu" onClick={() => setRankDropOpen(false)}>
-                      <div className="op-drop-item" onClick={() => setRankTipo('sdr')}>Ranking de SDRs</div>
-                      <div className="op-drop-item" onClick={() => setRankTipo('closer')}>Ranking de Closers</div>
+                    <div onClick={() => setRankDropOpen(false)}
+                      style={{
+                        position: 'absolute', top: '100%', right: 0, marginTop: 4, zIndex: 10,
+                        background: 'var(--bg-2)', border: '1px solid var(--border)', borderRadius: 8,
+                        padding: 4, minWidth: 120, boxShadow: '0 8px 24px rgba(0,0,0,.4)',
+                      }}>
+                      <div onClick={() => setRankTipo('sdr')}
+                        style={{ padding: '6px 10px', borderRadius: 4, cursor: 'pointer', fontSize: 12, color: 'var(--txt-1)' }}>SDRs</div>
+                      <div onClick={() => setRankTipo('closer')}
+                        style={{ padding: '6px 10px', borderRadius: 4, cursor: 'pointer', fontSize: 12, color: 'var(--txt-1)' }}>Closers</div>
                     </div>
                   )}
                 </div>
               </div>
 
               {rankVendedores.length === 0 ? (
-                <div style={{ color: 'var(--txt-3)', fontSize: 13, padding: '16px 0' }}>
-                  Nenhum {rankTipo === 'sdr' ? 'SDR' : 'closer'} cadastrado.
+                <div style={{ color: 'var(--txt-3)', fontSize: 13, padding: '24px 0', textAlign: 'center', lineHeight: 1.55 }}>
+                  Sem dados de performance ainda.<br/>
+                  <span style={{ fontSize: 11.5 }}>Preencha as planilhas dos vendedores pra alimentar o ranking.</span>
                 </div>
               ) : (
-                rankVendedores.map(({ v, m }, i) => {
-                  const maxRealiz = rankVendedores[0]?.m.realizados || 1;
-                  const medals = ['🥇', '🥈', '🥉'];
-                  return (
-                    <div key={v.id} className="op-rank-item">
-                      <span className="op-rank-medal">{medals[i] ?? ''}</span>
-                      <div className="op-rank-avatar">{v.nome.charAt(0).toUpperCase()}</div>
-                      <div className="op-rank-info">
-                        <div className="op-rank-nome">{v.nome}</div>
-                        <div className="op-rank-stats">
-                          {m.qualificados} qualif. · {m.agendados} agend. · {m.realizados} realiz.
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+                  {rankVendedores.map(({ v, m }, i) => {
+                    const maxRealiz = rankVendedores[0]?.m.realizados || 1;
+                    const medals = ['🥇', '🥈', '🥉'];
+                    return (
+                      <div key={v.id} style={{
+                        display: 'flex', alignItems: 'center', gap: 10,
+                        padding: 10, borderRadius: 12,
+                        background: 'var(--bg-2)', border: '1px solid var(--border)',
+                      }}>
+                        <span style={{ fontSize: 18, width: 24 }}>{medals[i] ?? ''}</span>
+                        <div style={{
+                          width: 32, height: 32, borderRadius: '50%',
+                          background: 'var(--silver-grad)', color: '#0a0a0c',
+                          display: 'grid', placeItems: 'center', fontWeight: 800, fontSize: 13,
+                        }}>{v.nome.charAt(0).toUpperCase()}</div>
+                        <div style={{ flex: 1, minWidth: 0 }}>
+                          <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--txt-0)' }}>{v.nome}</div>
+                          <div style={{ fontSize: 11, color: 'var(--txt-3)', marginTop: 1 }}>
+                            {m.qualificados} qualif · {m.agendados} agend · {m.realizados} realiz
+                          </div>
+                          <div style={{
+                            marginTop: 5, height: 4, borderRadius: 2,
+                            background: 'rgba(255,255,255,.06)', overflow: 'hidden',
+                          }}>
+                            <div style={{
+                              height: '100%',
+                              width: `${Math.round(m.realizados / maxRealiz * 100)}%`,
+                              background: 'linear-gradient(90deg, #3b82f6, #60a5fa)',
+                            }} />
+                          </div>
                         </div>
-                        <div className="op-rank-bar-track">
-                          <div className="op-rank-bar-fill" style={{ width: `${Math.round(m.realizados / maxRealiz * 100)}%` }} />
+                        <div style={{ textAlign: 'right' }}>
+                          <div style={{ fontSize: 18, fontWeight: 800, color: 'var(--txt-0)' }}>{m.realizados}</div>
+                          <div style={{ fontSize: 9, color: 'var(--txt-3)', letterSpacing: .5, fontWeight: 600 }}>REUN. REAL.</div>
                         </div>
                       </div>
-                      <div className="op-rank-val">{m.realizados}<span className="op-rank-val-label">REUN. REALIZADAS</span></div>
-                    </div>
-                  );
-                })
+                    );
+                  })}
+                </div>
               )}
+            </div>
+          </div>
+
+          {/* Tempo médio de resposta — destaque */}
+          <div style={{
+            padding: 22, borderRadius: 18,
+            background: 'linear-gradient(135deg, rgba(59,130,246,.18) 0%, rgba(37,99,235,.08) 100%)',
+            border: '1px solid rgba(59,130,246,.25)',
+            display: 'flex', alignItems: 'center', gap: 18, flexWrap: 'wrap',
+          }}>
+            <div style={{
+              width: 48, height: 48, borderRadius: 14,
+              background: 'rgba(59,130,246,.22)', color: '#60a5fa',
+              display: 'grid', placeItems: 'center', fontSize: 22, flexShrink: 0,
+            }}>⏱</div>
+            <div style={{ flex: 1, minWidth: 220 }}>
+              <div style={{ fontSize: 10, color: '#60a5fa', letterSpacing: 1.2, fontWeight: 700, marginBottom: 4 }}>
+                VELOCIDADE
+              </div>
+              <h3 style={{ margin: 0, fontSize: 16, fontWeight: 700, color: 'var(--txt-0)' }}>
+                Tempo médio de resposta
+              </h3>
+              <div style={{ fontSize: 12, color: 'var(--txt-2)', marginTop: 4, lineHeight: 1.5 }}>
+                Tempo entre lead entrar e primeiro contato do SDR. Métrica direta de qualidade do atendimento.
+              </div>
+            </div>
+            <div style={{ textAlign: 'right' }}>
+              <div style={{ fontSize: 28, fontWeight: 800, color: 'var(--txt-3)' }}>—</div>
+              <div style={{
+                fontSize: 10, color: 'var(--amber)', fontWeight: 700, marginTop: 2,
+                letterSpacing: .5, textTransform: 'uppercase',
+              }}>Aguardando integração</div>
+              <div style={{ fontSize: 10.5, color: 'var(--txt-3)', marginTop: 4, maxWidth: 240 }}>
+                Conecte WhatsApp/ZapSign pra ativar.
+              </div>
             </div>
           </div>
         </div>
@@ -445,6 +596,88 @@ export default function OperacaoDashPanel() {
           )}
         </div>
       )}
+    </div>
+  );
+}
+
+/* ════════════════════════════════════════════════════════════ */
+/* KPI components — visual hero (print 2) com substância (print 1) */
+
+type HeroVariant = 'primary' | 'silver' | 'dark' | 'gradient';
+
+function HeroKpi({
+  label, value, sub, variant,
+}: { label: string; value: string; sub: string; variant: HeroVariant }) {
+  const styles: Record<HeroVariant, React.CSSProperties> = {
+    primary: {
+      background: 'linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%)',
+      color: '#fff',
+      boxShadow: '0 8px 28px rgba(37,99,235,.32)',
+    },
+    silver: {
+      background: 'linear-gradient(135deg, #f5f5f7 0%, #c4c4cc 100%)',
+      color: '#0a0a0c',
+      boxShadow: '0 8px 28px rgba(196,196,204,.20)',
+    },
+    dark: {
+      background: 'linear-gradient(135deg, #1c1c22 0%, #16161a 100%)',
+      color: 'var(--txt-0)',
+      border: '1px solid var(--border)',
+    },
+    gradient: {
+      background: 'linear-gradient(135deg, #3b82f6 0%, #60a5fa 100%)',
+      color: '#fff',
+      boxShadow: '0 8px 28px rgba(59,130,246,.28)',
+    },
+  };
+  const onLight = variant === 'silver';
+  return (
+    <div style={{
+      padding: '20px 22px', borderRadius: 18, minHeight: 130,
+      display: 'flex', flexDirection: 'column', justifyContent: 'space-between',
+      transition: 'transform .2s',
+      ...styles[variant],
+    }}>
+      <div style={{
+        fontSize: 10.5, fontWeight: 700, letterSpacing: 1.2,
+        opacity: onLight ? .6 : .85,
+      }}>{label}</div>
+      <div style={{
+        fontSize: 34, fontWeight: 800, lineHeight: 1.1,
+        fontFamily: 'var(--font-display)', marginTop: 4,
+        letterSpacing: -0.5,
+      }}>{value}</div>
+      <div style={{
+        fontSize: 12, fontWeight: 500,
+        opacity: onLight ? .65 : .8, marginTop: 6,
+      }}>{sub}</div>
+    </div>
+  );
+}
+
+function MiniKpi({
+  label, value, sub, accent,
+}: { label: string; value: number; sub: string; accent: string }) {
+  return (
+    <div style={{
+      padding: '18px 20px', borderRadius: 16,
+      background: 'var(--bg-1)', border: '1px solid var(--border)',
+      position: 'relative', overflow: 'hidden',
+    }}>
+      <div style={{
+        position: 'absolute', top: 0, left: 0, right: 0, height: 3,
+        background: accent,
+      }} />
+      <div style={{
+        fontSize: 10, fontWeight: 700, letterSpacing: 1.2,
+        color: 'var(--txt-3)',
+      }}>{label}</div>
+      <div style={{
+        fontSize: 28, fontWeight: 800, lineHeight: 1.1,
+        color: 'var(--txt-0)', fontFamily: 'var(--font-display)',
+        marginTop: 6, letterSpacing: -0.3,
+      }}>{value}</div>
+      <div style={{ fontSize: 11.5, color: 'var(--txt-2)', marginTop: 4 }}>{sub}</div>
     </div>
   );
 }
