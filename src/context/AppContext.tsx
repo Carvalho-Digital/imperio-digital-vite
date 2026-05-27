@@ -538,6 +538,14 @@ export function AppProvider({ children }: { children: ReactNode }) {
     monthlyPlanIdByMonthRef.current = result.refs.monthlyPlanIdByMonth;
     funnelStageIdsRef.current = result.refs.funnelStageIds;
 
+    // DEBUG: ver o que veio do load pro mes 3 (sabemos que tem contratos no banco)
+    const mes3 = result.meses[2];
+    console.log('[applyDbResult] mes 3 ─ breakdown:', mes3?.breakdown);
+    console.log('[applyDbResult] mes 3 ─ funil contratos:',
+      mes3?.breakdown?.dados?.novos?.funil ?? '(sem breakdown)');
+    console.log('[applyDbResult] productCodeToId:', result.refs.productCodeToId);
+    console.log('[applyDbResult] monthlyPlanIdByMonth:', result.refs.monthlyPlanIdByMonth);
+
     const ui = loadUiState();
     dispatch({
       type: 'LOAD_ALL',
