@@ -10,13 +10,13 @@ interface NavItem {
 }
 
 const NAV_VISAO_GERAL: NavItem[] = [
-  { id: 'dashboard', icon: '▦',  label: 'Dashboard' },
+  { id: 'dashboard', icon: '▦',  label: 'Dashboard Operacional' }, // receita / MRR / faturamento
   { id: 'plano',     icon: '≡',  label: 'Plano Anual' },
   { id: 'produtos',  icon: '◇',  label: 'Produtos & Mix' },
 ];
 
 const NAV_OPERACAO: NavItem[] = [
-  { id: 'operacao',  icon: '▤', label: 'Dashboard Operacional' },
+  { id: 'operacao',  icon: '▤', label: 'Dashboard Comercial' }, // leads / funil / ranking SDR / Meu Painel
   { id: 'contratos', icon: '▣', label: 'Contratos' },
   { id: 'time',      icon: '◉', label: 'Time de Vendas' },
   { id: 'funis',     icon: '⫶', label: 'Funis de Aquisição' },

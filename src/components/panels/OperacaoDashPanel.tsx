@@ -166,7 +166,7 @@ export default function OperacaoDashPanel() {
     <div className="panel-root">
       <div className="panel-header">
         <div className="panel-header-meta">OPERAÇÃO</div>
-        <h1 className="panel-title">Dashboard Geral</h1>
+        <h1 className="panel-title">Dashboard Comercial</h1>
         <div className="panel-header-actions" style={{ marginLeft: 'auto', display: 'flex', gap: 8, alignItems: 'center' }}>
           {/* Notificações placeholder */}
         </div>

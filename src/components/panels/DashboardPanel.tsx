@@ -160,7 +160,7 @@ export default function DashboardPanel() {
     <>
       <div className="topbar">
         <div>
-          <h1 className="page-title">Dashboard Comercial</h1>
+          <h1 className="page-title">Dashboard Operacional</h1>
           <div className="page-subtitle" id="dashboard-subtitle">{subtitle}</div>
         </div>
         {/* Period tabs */}
