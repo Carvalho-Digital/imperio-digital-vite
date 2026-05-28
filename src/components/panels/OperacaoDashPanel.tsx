@@ -76,11 +76,11 @@ export default function OperacaoDashPanel() {
 
   /* ── Etapas do funil ──────────────────────────────────────── */
   const funil = [
-    { label: 'Leads Captados',      valor: aggMetrics.leadsCaptados, pctStr: null,                                                       color: '#3b82f6' },
-    { label: 'Qualificados',         valor: aggMetrics.qualificados,   pctStr: pct(aggMetrics.qualificados, aggMetrics.leadsCaptados),    color: '#4f8cf7' },
-    { label: 'Agendamentos',         valor: aggMetrics.agendados,      pctStr: pct(aggMetrics.agendados, aggMetrics.qualificados),        color: '#6396f8' },
-    { label: 'Reuniões Realizadas',  valor: aggMetrics.realizados,     pctStr: pct(aggMetrics.realizados, aggMetrics.agendados),          color: '#82a8fa' },
-    { label: 'Contratos Fechados',   valor: aggMetrics.contratos,      pctStr: pct(aggMetrics.contratos, aggMetrics.realizados),          color: '#a3befc' },
+    { roman: 'I',   label: 'Leads Captados',      valor: aggMetrics.leadsCaptados, pctStr: null                                                       },
+    { roman: 'II',  label: 'Qualificados',         valor: aggMetrics.qualificados,   pctStr: pct(aggMetrics.qualificados, aggMetrics.leadsCaptados)   },
+    { roman: 'III', label: 'Agendamentos',         valor: aggMetrics.agendados,      pctStr: pct(aggMetrics.agendados, aggMetrics.qualificados)       },
+    { roman: 'IV',  label: 'Reuniões Realizadas',  valor: aggMetrics.realizados,     pctStr: pct(aggMetrics.realizados, aggMetrics.agendados)         },
+    { roman: 'V',   label: 'Contratos Fechados',   valor: aggMetrics.contratos,      pctStr: pct(aggMetrics.contratos, aggMetrics.realizados)         },
   ];
 
   const mesDisplay = (() => {
@@ -141,56 +141,62 @@ export default function OperacaoDashPanel() {
           {kpis.map(k => <HeroKpi key={k.label} {...k} />)}
         </div>
 
-        {/* Funil de Vendas — visual de funil de verdade */}
+        {/* Row: Funil + Ranking SDRs (estilo print 2) */}
         <div style={{
-          padding: 22, borderRadius: 18,
-          background: 'var(--bg-1)', border: '1px solid var(--border)',
-        }}>
-          <div style={{ fontSize: 10, color: 'var(--txt-3)', letterSpacing: 1.2, fontWeight: 700, marginBottom: 4 }}>ESTRUTURA</div>
-          <h3 style={{ margin: '0 0 18px', fontSize: 17, fontWeight: 700, color: 'var(--txt-0)' }}>Funil de Vendas</h3>
-          <FunnelChart steps={funil} />
-        </div>
-
-        {/* Rankings — SDRs e Closers lado a lado */}
-        <div style={{
-          display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14,
+          display: 'grid', gridTemplateColumns: '1.3fr 1fr', gap: 14,
         }}
         className="op-dash-grid-2col">
+          {/* Funil de Vendas */}
+          <div style={{
+            padding: 22, borderRadius: 18,
+            background: 'var(--bg-1)', border: '1px solid var(--border)',
+          }}>
+            <div style={{ fontSize: 10, color: 'var(--txt-3)', letterSpacing: 1.2, fontWeight: 700, marginBottom: 4 }}>ESTRUTURA</div>
+            <h3 style={{ margin: '0 0 16px', fontSize: 17, fontWeight: 700, color: 'var(--txt-0)' }}>Funil de Vendas</h3>
+            <FunnelChart steps={funil} />
+          </div>
+
           <RankingCard title="Ranking de SDRs" tipo="sdr" data={rankingSDR} />
-          <RankingCard title="Ranking de Closers" tipo="closer" data={rankingCloser} />
         </div>
 
-        {/* Tempo Médio de Resposta */}
+        {/* Row: Ranking Closers + Tempo de Resposta */}
         <div style={{
-          padding: 22, borderRadius: 18,
-          background: 'linear-gradient(135deg, rgba(59,130,246,.18) 0%, rgba(37,99,235,.08) 100%)',
-          border: '1px solid rgba(59,130,246,.25)',
-          display: 'flex', alignItems: 'center', gap: 18, flexWrap: 'wrap',
-        }}>
+          display: 'grid', gridTemplateColumns: '1.3fr 1fr', gap: 14,
+        }}
+        className="op-dash-grid-2col">
+          <RankingCard title="Ranking de Closers" tipo="closer" data={rankingCloser} />
+
+          {/* Tempo Médio de Resposta */}
           <div style={{
-            width: 48, height: 48, borderRadius: 14,
-            background: 'rgba(59,130,246,.22)', color: '#60a5fa',
-            display: 'grid', placeItems: 'center', fontSize: 22, flexShrink: 0,
-          }}>⏱</div>
-          <div style={{ flex: 1, minWidth: 220 }}>
-            <div style={{ fontSize: 10, color: '#60a5fa', letterSpacing: 1.2, fontWeight: 700, marginBottom: 4 }}>
-              VELOCIDADE
+            padding: 22, borderRadius: 18,
+            background: 'linear-gradient(135deg, rgba(59,130,246,.18) 0%, rgba(37,99,235,.08) 100%)',
+            border: '1px solid rgba(59,130,246,.25)',
+            display: 'flex', flexDirection: 'column', justifyContent: 'space-between',
+          }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+              <div style={{
+                width: 40, height: 40, borderRadius: 12,
+                background: 'rgba(59,130,246,.22)', color: '#60a5fa',
+                display: 'grid', placeItems: 'center', fontSize: 18, flexShrink: 0,
+              }}>⏱</div>
+              <div>
+                <div style={{ fontSize: 10, color: '#60a5fa', letterSpacing: 1.2, fontWeight: 700, marginBottom: 2 }}>
+                  VELOCIDADE
+                </div>
+                <h3 style={{ margin: 0, fontSize: 15, fontWeight: 700, color: 'var(--txt-0)' }}>
+                  Tempo médio de resposta
+                </h3>
+              </div>
             </div>
-            <h3 style={{ margin: 0, fontSize: 16, fontWeight: 700, color: 'var(--txt-0)' }}>
-              Tempo médio de resposta
-            </h3>
-            <div style={{ fontSize: 12, color: 'var(--txt-2)', marginTop: 4, lineHeight: 1.5 }}>
-              Tempo entre lead entrar e primeiro contato do SDR. Métrica direta de qualidade do atendimento.
+            <div style={{ fontSize: 11.5, color: 'var(--txt-2)', lineHeight: 1.5, marginTop: 10 }}>
+              Tempo entre lead entrar e primeiro contato do SDR.
             </div>
-          </div>
-          <div style={{ textAlign: 'right' }}>
-            <div style={{ fontSize: 28, fontWeight: 800, color: 'var(--txt-3)' }}>—</div>
-            <div style={{
-              fontSize: 10, color: 'var(--amber)', fontWeight: 700, marginTop: 2,
-              letterSpacing: .5, textTransform: 'uppercase',
-            }}>Aguardando integração</div>
-            <div style={{ fontSize: 10.5, color: 'var(--txt-3)', marginTop: 4, maxWidth: 240 }}>
-              Conecte WhatsApp/ZapSign pra ativar.
+            <div style={{ display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between', marginTop: 14 }}>
+              <div style={{
+                fontSize: 10, color: 'var(--amber)', fontWeight: 700,
+                letterSpacing: .5, textTransform: 'uppercase', maxWidth: 140,
+              }}>Aguardando integração WhatsApp/ZapSign</div>
+              <div style={{ fontSize: 28, fontWeight: 800, color: 'var(--txt-3)', lineHeight: 1 }}>—</div>
             </div>
           </div>
         </div>
@@ -270,96 +276,64 @@ function HeroKpi({ label, value, sub, variant }: HeroKpiData) {
 }
 
 /* ════════════════════════════════════════════════════════════ */
-/* FunnelChart — funil visual de verdade (trapézios decrescentes) */
+/* FunnelChart — barras decrescentes compactas (estilo Print 2) */
 
 interface FunnelStep {
+  roman: string;
   label: string;
   valor: number;
   pctStr: string | null;
-  color: string;
 }
 
 function FunnelChart({ steps }: { steps: FunnelStep[] }) {
-  // Larguras decrescentes (em %): topo 100, fundo 40
+  // Larguras decrescentes — cada etapa "afunila" ~14% da anterior
   const widths = [100, 86, 72, 58, 44];
-  const ROW_H = 70;
-  const GAP   = 6;
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: GAP }}>
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
       {steps.map((step, i) => {
-        const w = widths[i] ?? 40;
-        const wNext = widths[i + 1] ?? widths[widths.length - 1];
-        // Calcula o offset das laterais pra centrar o trapézio
-        const inset = (100 - w) / 2;
-        const insetNext = (100 - wNext) / 2;
-        // Polígono: top-left, top-right, bottom-right (mais inset), bottom-left (mais inset)
-        const clip = `polygon(
-          ${inset}% 0%,
-          ${100 - inset}% 0%,
-          ${100 - insetNext}% 100%,
-          ${insetNext}% 100%
-        )`;
+        const w = widths[i] ?? widths[widths.length - 1];
         return (
           <div key={i} style={{
-            position: 'relative', height: ROW_H, width: '100%',
-            display: 'flex', alignItems: 'center',
+            width: `${w}%`,
+            transition: 'width .3s',
+            padding: '12px 16px', borderRadius: 12,
+            background: 'linear-gradient(135deg, #3b82f6 0%, #2563eb 100%)',
+            boxShadow: '0 4px 12px rgba(59,130,246,.18)',
+            color: '#fff',
+            display: 'flex', alignItems: 'center', gap: 12,
+            minHeight: 48,
           }}>
-            {/* Trapézio de fundo */}
-            <div style={{
-              position: 'absolute', inset: 0,
-              background: `linear-gradient(135deg, ${step.color} 0%, ${darken(step.color)} 100%)`,
-              clipPath: clip,
-              boxShadow: '0 4px 12px rgba(59,130,246,.18)',
-            }} />
-            {/* Conteúdo centrado por cima */}
-            <div style={{
-              position: 'relative', zIndex: 1, width: '100%',
-              display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-              padding: `0 ${Math.max(inset + 4, 8)}% 0 ${Math.max(inset + 4, 8)}%`,
-              color: '#fff', pointerEvents: 'none',
-            }}>
+            <span style={{
+              width: 24, height: 24, borderRadius: '50%',
+              background: 'rgba(255,255,255,.22)',
+              display: 'grid', placeItems: 'center',
+              fontSize: 10, fontWeight: 800, flexShrink: 0,
+              letterSpacing: .3,
+            }}>{step.roman}</span>
+            <span style={{
+              fontSize: 12, fontWeight: 700, letterSpacing: .8,
+              textTransform: 'uppercase',
+              flex: 1, minWidth: 0,
+              overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
+            }}>{step.label}</span>
+            <span style={{
+              fontSize: 18, fontWeight: 800,
+              fontFamily: 'var(--font-display)',
+            }}>{step.valor}</span>
+            {step.pctStr && (
               <span style={{
-                fontSize: 12.5, fontWeight: 700, letterSpacing: .3,
-                textShadow: '0 1px 2px rgba(0,0,0,.25)',
+                fontSize: 10.5, fontWeight: 700,
+                padding: '3px 8px', borderRadius: 5,
+                background: 'rgba(255,255,255,.18)',
                 whiteSpace: 'nowrap',
-              }}>{step.label}</span>
-              <span style={{
-                display: 'flex', alignItems: 'baseline', gap: 8,
-              }}>
-                <span style={{
-                  fontSize: 22, fontWeight: 800,
-                  fontFamily: 'var(--font-display)',
-                  textShadow: '0 1px 2px rgba(0,0,0,.25)',
-                }}>{step.valor}</span>
-                {step.pctStr && (
-                  <span style={{
-                    fontSize: 11, fontWeight: 700,
-                    padding: '2px 7px', borderRadius: 5,
-                    background: 'rgba(255,255,255,.22)',
-                    color: '#fff',
-                  }}>{step.pctStr}</span>
-                )}
-              </span>
-            </div>
+              }}>{step.pctStr}</span>
+            )}
           </div>
         );
       })}
     </div>
   );
-}
-
-// Helper: escurece um hex pra ter gradient interno no trapézio
-function darken(hex: string): string {
-  const h = hex.replace('#', '');
-  const r = parseInt(h.slice(0, 2), 16);
-  const g = parseInt(h.slice(2, 4), 16);
-  const b = parseInt(h.slice(4, 6), 16);
-  const f = 0.78; // 22% mais escuro
-  const rr = Math.round(r * f).toString(16).padStart(2, '0');
-  const gg = Math.round(g * f).toString(16).padStart(2, '0');
-  const bb = Math.round(b * f).toString(16).padStart(2, '0');
-  return `#${rr}${gg}${bb}`;
 }
 
 /* ════════════════════════════════════════════════════════════ */
